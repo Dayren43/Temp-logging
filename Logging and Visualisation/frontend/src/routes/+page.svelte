@@ -13,7 +13,7 @@
 	async function fetchData() {
 		ifFetch = true
 		try {
-			const res = await fetch('http://localhost:3000/get');
+			const res = await fetch('http://epsilon.local:3000/get');
 			const json = await res.json();
 			console.log(json);
 			data = {

@@ -32,20 +32,29 @@
   let lines = [], points = [], voronoiGrid;
   let xScale, yScaleTemp, yScaleHumid, xTicks, yTicksTemp, yTicksHumid, dotInfo;
 
-  onMount(async () => {
-    const res = await fetch('http://localhost:3000/data');
+onMount(async () => {
+  try {
+    const res = await fetch('http://epsilon.local:3000/data');
+    console.log("Fetch response object:", res);
+
     if (res.ok) {
       const raw = await res.json();
+      console.log("Raw data from backend:", raw);
+
       fullData = raw.map(d => ({
         time: new Date(d.timestamp),
         temp: d.temp,
         humid: d.humid
       }));
+
+      console.log("Mapped fullData:", fullData);
+    } else {
+      console.error("Fetch failed with status:", res.status, res.statusText);
     }
-
-    // setInterval(fetchData, 3000);
-
-  });
+  } catch (err) {
+    console.error("Error fetching data:", err);
+  }
+});
 
   function parseDuration(str) {
     const regex = /(\d+)([dhm])/g;
