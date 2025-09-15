@@ -1,0 +1,20 @@
+{
+  "name": "temperature-visualization",
+  "type": "module",
+  "scripts": {
+    "dev": "svelte-kit dev",
+    "build": "svelte-kit build",
+    "preview": "svelte-kit preview"
+  },
+  "dependencies": {
+    "@sveltejs/kit": "^0.0.30",
+    "chart.js": "^4.4.1",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "pg": "^8.11.3",
+    "svelte": "^5.38.1"
+  },
+  "devDependencies": {
+    "@sveltejs/adapter-static": "^0.0.17"
+  }
+}

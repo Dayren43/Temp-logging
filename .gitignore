@@ -53,3 +53,8 @@ dkms.conf
 
 # debug information files
 *.dwo
+
+# Frontend & DB
+.env
+node_modules/
+db-data/

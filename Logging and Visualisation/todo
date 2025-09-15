@@ -1,0 +1,14 @@
+# Before first Commit
+- [ ] Move all database credentials to a .env file
+- [ ] Clean up the File structure
+  
+# Improvements
+- [ ] Graphed perceived temperature
+    - [ ] Add perceived temperature calculations to the sensor-poller
+    - [ ] Add perceived temperature field ot the database
+
+- [ ] Monthly statistics page
+  - [ ] Average & peak data per month.
+  - [ ] Support multi year logging.
+  - [ ] Cache statistics
+

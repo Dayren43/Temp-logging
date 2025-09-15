@@ -1,0 +1,204 @@
+[
+    {
+        "label": "re",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "re",
+        "description": "re",
+        "detail": "re",
+        "documentation": {}
+    },
+    {
+        "label": "sys",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "sys",
+        "description": "sys",
+        "detail": "sys",
+        "documentation": {}
+    },
+    {
+        "label": "os",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "os",
+        "description": "os",
+        "detail": "os",
+        "documentation": {}
+    },
+    {
+        "label": "glob",
+        "importPath": "glob",
+        "description": "glob",
+        "isExtraImport": true,
+        "detail": "glob",
+        "documentation": {}
+    },
+    {
+        "label": "glob",
+        "importPath": "glob",
+        "description": "glob",
+        "isExtraImport": true,
+        "detail": "glob",
+        "documentation": {}
+    },
+    {
+        "label": "argparse",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "argparse",
+        "description": "argparse",
+        "detail": "argparse",
+        "documentation": {}
+    },
+    {
+        "label": "*",
+        "importPath": "pyparsing",
+        "description": "pyparsing",
+        "isExtraImport": true,
+        "detail": "pyparsing",
+        "documentation": {}
+    },
+    {
+        "label": "TestSuite",
+        "importPath": "junit_xml",
+        "description": "junit_xml",
+        "isExtraImport": true,
+        "detail": "junit_xml",
+        "documentation": {}
+    },
+    {
+        "label": "TestCase",
+        "importPath": "junit_xml",
+        "description": "junit_xml",
+        "isExtraImport": true,
+        "detail": "junit_xml",
+        "documentation": {}
+    },
+    {
+        "label": "time",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "time",
+        "description": "time",
+        "detail": "time",
+        "documentation": {}
+    },
+    {
+        "label": "requests",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "requests",
+        "description": "requests",
+        "detail": "requests",
+        "documentation": {}
+    },
+    {
+        "label": "psycopg2",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "psycopg2",
+        "description": "psycopg2",
+        "detail": "psycopg2",
+        "documentation": {}
+    },
+    {
+        "label": "ver_re",
+        "kind": 5,
+        "importPath": "ESP32c3 sensor webserver..pio.libdeps.seeed_xiao_esp32c3.Unity.auto.extract_version",
+        "description": "ESP32c3 sensor webserver..pio.libdeps.seeed_xiao_esp32c3.Unity.auto.extract_version",
+        "peekOfCode": "ver_re = re.compile(r\"^#define\\s+UNITY_VERSION_(?:MAJOR|MINOR|BUILD)\\s+(\\d+)$\")\nversion = []\nwith open(sys.argv[1], \"r\") as f:\n    for line in f:\n        m = ver_re.match(line)\n        if m:\n            version.append(m.group(1))\nprint(\".\".join(version))",
+        "detail": "ESP32c3 sensor webserver..pio.libdeps.seeed_xiao_esp32c3.Unity.auto.extract_version",
+        "documentation": {}
+    },
+    {
+        "label": "version",
+        "kind": 5,
+        "importPath": "ESP32c3 sensor webserver..pio.libdeps.seeed_xiao_esp32c3.Unity.auto.extract_version",
+        "description": "ESP32c3 sensor webserver..pio.libdeps.seeed_xiao_esp32c3.Unity.auto.extract_version",
+        "peekOfCode": "version = []\nwith open(sys.argv[1], \"r\") as f:\n    for line in f:\n        m = ver_re.match(line)\n        if m:\n            version.append(m.group(1))\nprint(\".\".join(version))",
+        "detail": "ESP32c3 sensor webserver..pio.libdeps.seeed_xiao_esp32c3.Unity.auto.extract_version",
+        "documentation": {}
+    },
+    {
+        "label": "UnityTestSummary",
+        "kind": 6,
+        "importPath": "ESP32c3 sensor webserver..pio.libdeps.seeed_xiao_esp32c3.Unity.auto.stylize_as_junit",
+        "description": "ESP32c3 sensor webserver..pio.libdeps.seeed_xiao_esp32c3.Unity.auto.stylize_as_junit",
+        "peekOfCode": "class UnityTestSummary:\n    def __init__(self):\n        self.report = ''\n        self.total_tests = 0\n        self.failures = 0\n        self.ignored = 0\n        self.targets = 0\n        self.root = None\n        self.output = None\n        self.test_suites = dict()",
+        "detail": "ESP32c3 sensor webserver..pio.libdeps.seeed_xiao_esp32c3.Unity.auto.stylize_as_junit",
+        "documentation": {}
+    },
+    {
+        "label": "UnityTestSummary",
+        "kind": 6,
+        "importPath": "ESP32c3 sensor webserver..pio.libdeps.seeed_xiao_esp32c3.Unity.auto.unity_test_summary",
+        "description": "ESP32c3 sensor webserver..pio.libdeps.seeed_xiao_esp32c3.Unity.auto.unity_test_summary",
+        "peekOfCode": "class UnityTestSummary:\n    def __init__(self):\n        self.report = ''\n        self.total_tests = 0\n        self.failures = 0\n        self.ignored = 0\n    def run(self):\n        # Clean up result file names\n        results = []\n        for target in self.targets:",
+        "detail": "ESP32c3 sensor webserver..pio.libdeps.seeed_xiao_esp32c3.Unity.auto.unity_test_summary",
+        "documentation": {}
+    },
+    {
+        "label": "poll_and_insert",
+        "kind": 2,
+        "importPath": "Logging and Visualisation.poll_sensor",
+        "description": "Logging and Visualisation.poll_sensor",
+        "peekOfCode": "def poll_and_insert():\n    try:\n        resp = requests.get(SENSOR_URL, timeout=10)\n        data = resp.json()\n        temp = data.get(\"Temp\")\n        humid = data.get(\"Humid\")\n        if temp is not None and humid is not None:\n            conn = psycopg2.connect(\n                host=DB_HOST, dbname=DB_NAME, user=DB_USER, password=DB_PASS\n            )",
+        "detail": "Logging and Visualisation.poll_sensor",
+        "documentation": {}
+    },
+    {
+        "label": "DB_HOST",
+        "kind": 5,
+        "importPath": "Logging and Visualisation.poll_sensor",
+        "description": "Logging and Visualisation.poll_sensor",
+        "peekOfCode": "DB_HOST = os.getenv(\"DB_HOST\")\nDB_NAME = os.getenv(\"DB_NAME\")\nDB_USER = os.getenv(\"DB_USER\")\nDB_PASS = os.getenv(\"DB_PASS\")\nSENSOR_URL = os.getenv(\"SENSOR_URL\", \"http://sensor.local/get\")\nINTERVAL = int(os.getenv(\"INTERVAL\", \"300\"))  # 5 minutes\ndef poll_and_insert():\n    try:\n        resp = requests.get(SENSOR_URL, timeout=10)\n        data = resp.json()",
+        "detail": "Logging and Visualisation.poll_sensor",
+        "documentation": {}
+    },
+    {
+        "label": "DB_NAME",
+        "kind": 5,
+        "importPath": "Logging and Visualisation.poll_sensor",
+        "description": "Logging and Visualisation.poll_sensor",
+        "peekOfCode": "DB_NAME = os.getenv(\"DB_NAME\")\nDB_USER = os.getenv(\"DB_USER\")\nDB_PASS = os.getenv(\"DB_PASS\")\nSENSOR_URL = os.getenv(\"SENSOR_URL\", \"http://sensor.local/get\")\nINTERVAL = int(os.getenv(\"INTERVAL\", \"300\"))  # 5 minutes\ndef poll_and_insert():\n    try:\n        resp = requests.get(SENSOR_URL, timeout=10)\n        data = resp.json()\n        temp = data.get(\"Temp\")",
+        "detail": "Logging and Visualisation.poll_sensor",
+        "documentation": {}
+    },
+    {
+        "label": "DB_USER",
+        "kind": 5,
+        "importPath": "Logging and Visualisation.poll_sensor",
+        "description": "Logging and Visualisation.poll_sensor",
+        "peekOfCode": "DB_USER = os.getenv(\"DB_USER\")\nDB_PASS = os.getenv(\"DB_PASS\")\nSENSOR_URL = os.getenv(\"SENSOR_URL\", \"http://sensor.local/get\")\nINTERVAL = int(os.getenv(\"INTERVAL\", \"300\"))  # 5 minutes\ndef poll_and_insert():\n    try:\n        resp = requests.get(SENSOR_URL, timeout=10)\n        data = resp.json()\n        temp = data.get(\"Temp\")\n        humid = data.get(\"Humid\")",
+        "detail": "Logging and Visualisation.poll_sensor",
+        "documentation": {}
+    },
+    {
+        "label": "DB_PASS",
+        "kind": 5,
+        "importPath": "Logging and Visualisation.poll_sensor",
+        "description": "Logging and Visualisation.poll_sensor",
+        "peekOfCode": "DB_PASS = os.getenv(\"DB_PASS\")\nSENSOR_URL = os.getenv(\"SENSOR_URL\", \"http://sensor.local/get\")\nINTERVAL = int(os.getenv(\"INTERVAL\", \"300\"))  # 5 minutes\ndef poll_and_insert():\n    try:\n        resp = requests.get(SENSOR_URL, timeout=10)\n        data = resp.json()\n        temp = data.get(\"Temp\")\n        humid = data.get(\"Humid\")\n        if temp is not None and humid is not None:",
+        "detail": "Logging and Visualisation.poll_sensor",
+        "documentation": {}
+    },
+    {
+        "label": "SENSOR_URL",
+        "kind": 5,
+        "importPath": "Logging and Visualisation.poll_sensor",
+        "description": "Logging and Visualisation.poll_sensor",
+        "peekOfCode": "SENSOR_URL = os.getenv(\"SENSOR_URL\", \"http://sensor.local/get\")\nINTERVAL = int(os.getenv(\"INTERVAL\", \"300\"))  # 5 minutes\ndef poll_and_insert():\n    try:\n        resp = requests.get(SENSOR_URL, timeout=10)\n        data = resp.json()\n        temp = data.get(\"Temp\")\n        humid = data.get(\"Humid\")\n        if temp is not None and humid is not None:\n            conn = psycopg2.connect(",
+        "detail": "Logging and Visualisation.poll_sensor",
+        "documentation": {}
+    },
+    {
+        "label": "INTERVAL",
+        "kind": 5,
+        "importPath": "Logging and Visualisation.poll_sensor",
+        "description": "Logging and Visualisation.poll_sensor",
+        "peekOfCode": "INTERVAL = int(os.getenv(\"INTERVAL\", \"300\"))  # 5 minutes\ndef poll_and_insert():\n    try:\n        resp = requests.get(SENSOR_URL, timeout=10)\n        data = resp.json()\n        temp = data.get(\"Temp\")\n        humid = data.get(\"Humid\")\n        if temp is not None and humid is not None:\n            conn = psycopg2.connect(\n                host=DB_HOST, dbname=DB_NAME, user=DB_USER, password=DB_PASS",
+        "detail": "Logging and Visualisation.poll_sensor",
+        "documentation": {}
+    }
+]
