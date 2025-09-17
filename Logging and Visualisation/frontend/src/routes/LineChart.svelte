@@ -24,6 +24,7 @@
 
   $: showTemp = true;
   $: showHumid = true;
+  let DateTick = false;
 
 
   let timeRange = '24h'; // default
@@ -146,11 +147,11 @@ $: {
 
 <!-- Range selection UI -->
 <div class="controls">
-  <button on:click={() => { timeRange = '6h'; console.log("btn 6h");}}>Last 6h</button>
-  <button on:click={() => { timeRange = '24h';console.log("btn 24h");}}>Last 24h</button>
-  <button on:click={() => { timeRange = '3d'; console.log("btn 3d");}}>Last 3d</button>
-  <button on:click={() => { timeRange = '7d'; console.log("btn 7d");}}>Last 7d</button>
-  <button on:click={() => { timeRange = 'all'; console.log("all");}}>All</button>
+  <button on:click={() => { timeRange = '6h'; DateTick = false;console.log("btn 6h");}}>Last 6h</button>
+  <button on:click={() => { timeRange = '24h';DateTick = false;console.log("btn 24h");}}>Last 24h</button>
+  <button on:click={() => { timeRange = '3d'; DateTick = true; console.log("btn 3d");}}>Last 3d</button>
+  <button on:click={() => { timeRange = '7d'; DateTick = true; console.log("btn 7d");}}>Last 7d</button>
+  <button on:click={() => { timeRange = 'all';DateTick = true; console.log("all");}}>All</button>
   <input
     type="text"
     placeholder="e.g. 3d7h"
@@ -193,7 +194,7 @@ $: {
           <g transform="translate({xScale(tick)},0)">
             <line stroke="black" y2="6" />
             <text font-size="10" y="20" text-anchor="middle">
-              {tick.toLocaleDateString()}
+              {DateTick ? tick.toLocaleDateString(): tick.toLocaleTimeString([], {hour12: false, hour: '2-digit', minute:'2-digit'})}
             </text>
           </g>
         {/each}
@@ -231,7 +232,7 @@ $: {
   <div class="tooltip"
     style="position:absolute; left:{dotInfo[2].clientX + 12}px; top:{dotInfo[2].clientY + 12}px;
            pointer-events:none; background-color:{tooltipBackground}; color:{tooltipTextColor}">
-    {dotInfo[0].x.toLocaleString()}<br/>
+    {dotInfo[0].x.toLocaleTimeString([], {hour12: false, hour: '2-digit', minute:'2-digit'})}<br/>
     {dotInfo[0].series === 0
       ? `${dotInfo[0].y.toFixed(2)} °C`
       : `${dotInfo[0].y.toFixed(2)} %`}

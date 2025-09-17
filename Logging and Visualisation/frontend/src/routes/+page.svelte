@@ -59,7 +59,7 @@
 <section>
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-	<h1 on:click={	!ifFetch ? fetchData : ""}> #Fix this flag or remove
+	<h1 on:click={	!ifFetch ? fetchData : ""}>
 		Current Conditions <br />
 		Perceived: {perceivedTemperature.toFixed(1)}°C <br />
 		Temp: {data?.temp}°C, Humid: {data?.humid}%

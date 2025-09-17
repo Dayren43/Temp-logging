@@ -1,5 +1,4 @@
-# Before first Commit
-- [ ] Move all database credentials to a .env file
+- [x] Move all database credentials to a .env file
 - [ ] Clean up the File structure
   
 # Improvements
@@ -11,4 +10,11 @@
   - [ ] Average & peak data per month.
   - [ ] Support multi year logging.
   - [ ] Cache statistics
+
+- [ ] Current days statistics
+  Avg
+  peak
+  min
+
+- [x] Auto refetch data every x min of website being open
 
