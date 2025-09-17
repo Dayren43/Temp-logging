@@ -79,4 +79,28 @@ void setup() {
     delayMS = sensor.min_delay / 1000;
 }
 
-void loop() {}
+void checkWiFiConnection() {
+    if (WiFi.status() != WL_CONNECTED) {
+        Serial.println("WiFi disconnected! Attempting reconnect...");
+        WiFi.disconnect();
+        WiFi.reconnect();
+        unsigned long startAttemptTime = millis();
+        // Wait up to 10 seconds for connection
+        while (WiFi.status() != WL_CONNECTED && millis() - startAttemptTime < 10000) {
+            delay(500);
+            Serial.print(".");
+        }
+        if (WiFi.status() == WL_CONNECTED) {
+            Serial.println("\nWiFi reconnected!");
+            Serial.print("IP Address: ");
+            Serial.println(WiFi.localIP());
+        } else {
+            Serial.println("\nWiFi reconnection failed.");
+        }
+    }
+}
+
+void loop() {
+    checkWiFiConnection();
+    delay(60000);
+}
