@@ -20,41 +20,70 @@
 
   let fullData = [];
   let chartData = [];
-
+  let isLoading = false;
+  let error = null;
 
   $: showTemp = true;
   $: showHumid = true;
   let DateTick = false;
 
-
   let timeRange = '24h'; // default
+  let aggregation = '5m'; // default aggregation
 
   let xVals = [], yValsTemp = [], yValsHumid = [];
   let lines = [], points = [], voronoiGrid;
   let xScale, yScaleTemp, yScaleHumid, xTicks, yTicksTemp, yTicksHumid, dotInfo;
 
-onMount(async () => {
+async function fetchData() {
+  isLoading = true;
+  error = null;
+  
   try {
-    const res = await fetch('http://epsilon.local:3000/data');
-    console.log("Fetch response object:", res);
+    let queryParams = new URLSearchParams({
+      range: timeRange,
+    });
+    
+    // Auto-set aggregation based on range to keep the chart snappy
+    if (['3d', '7d', 'all'].includes(timeRange)) {
+      queryParams.set('aggregate', '15m'); // 15m is plenty for a week view
+    } else if (timeRange === '24h') {
+      queryParams.set('aggregate', '5m');
+    }
 
-    if (res.ok) {
-      const raw = await res.json();
-      console.log("Raw data from backend:", raw);
-
-      fullData = raw.map(d => ({
-        time: new Date(d.timestamp),
-        temp: d.temp,
-        humid: d.humid
-      }));
-
-      console.log("Mapped fullData:", fullData);
+    const url = `http://epsilon.local:3000/data?${queryParams.toString()}`;
+    const res = await fetch(url);
+    
+    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+    
+    const response = await res.json();
+    
+    if (response.data && response.data.length > 0) {
+      fullData = response.data.map(d => {
+        // If aggregated, use time_bucket. If raw, use timestamp.
+        const dateStr = d.time_bucket || d.timestamp;
+        return {
+          time: new Date(dateStr),
+          // Backend now returns lowercase temp/humid from pg
+          temp: parseFloat(d.temp), 
+          humid: parseFloat(d.humid)
+        };
+      });
+      
+      // Sort data by time (Postgres 'DESC' is good for tables, 
+      // but D3 line charts usually want 'ASC')
+      fullData.sort((a, b) => a.time - b.time);
     } else {
-      console.error("Fetch failed with status:", res.status, res.statusText);
+      fullData = [];
     }
   } catch (err) {
-    console.error("Error fetching data:", err);
+    error = err.message;
+  } finally {
+    isLoading = false;
   }
+}
+
+onMount(async () => {
+  await fetchData();
 });
 
   function parseDuration(str) {
@@ -71,6 +100,11 @@ onMount(async () => {
     return ms;
   }
 
+// Reactive data fetching when time range changes
+$: if (timeRange) {
+  fetchData();
+}
+
 $: {
   if (fullData.length) {
     if (timeRange === 'all') {
@@ -84,17 +118,27 @@ $: {
   }
 }
 
-  $: if (chartData.length > 0) {
-    xVals = chartData.map(d => d.time);
-    yValsTemp = chartData.map(d => d.temp);
-    yValsHumid = chartData.map(d => d.humid);
+  // Performance optimization: throttle chart updates and limit data points
+  let chartUpdateTimeout = null;
+  
+  function updateChart() {
+    if (chartData.length === 0) return;
+    
+    // Limit data points to prevent stack overflow (max 2000 points for chart)
+    const maxPoints = 2000;
+    const step = Math.max(1, Math.floor(chartData.length / maxPoints));
+    const sampledData = chartData.filter((_, index) => index % step === 0);
+    
+    xVals = sampledData.map(d => d.time);
+    yValsTemp = sampledData.map(d => d.temp);
+    yValsHumid = sampledData.map(d => d.humid);
 
     xScale = scaleUtc()
       .domain([xVals[0], xVals[xVals.length - 1]])
       .range([marginLeft, width - marginRight]);
 
     yScaleTemp = scaleLinear()
-      .domain(chartData.length > 0
+      .domain(sampledData.length > 0
         ? [Math.min(defaultTempDomain[0], Math.min(...yValsTemp)),
           Math.max(defaultTempDomain[1], Math.max(...yValsTemp))]
         : defaultTempDomain
@@ -103,7 +147,7 @@ $: {
       .range([height - marginBottom, marginTop]);
 
     yScaleHumid = scaleLinear()
-      .domain(chartData.length > 0
+      .domain(sampledData.length > 0
         ? [Math.min(defaultHumidDomain[0], Math.min(...yValsHumid)),
           Math.max(defaultHumidDomain[1], Math.max(...yValsHumid))]
         : defaultHumidDomain
@@ -123,12 +167,12 @@ $: {
 
     // Filter selected lines based on toggles
     lines = [];
-    lines.push(tempLine(showTemp ? chartData : []))
-    lines.push(humidLine(showHumid ? chartData : []));
+    lines.push(tempLine(showTemp ? sampledData : []))
+    lines.push(humidLine(showHumid ? sampledData : []));
 
     points = [
-      ...chartData.map((d, i) => ({ x: xVals[i], y: yValsTemp[i], series: 0 })),
-      ...chartData.map((d, i) => ({ x: xVals[i], y: yValsHumid[i], series: 1 }))
+      ...sampledData.map((d, i) => ({ x: xVals[i], y: yValsTemp[i], series: 0 })),
+      ...sampledData.map((d, i) => ({ x: xVals[i], y: yValsHumid[i], series: 1 }))
     ];
 
     const pointsScaled = points.map(p => [
@@ -136,12 +180,26 @@ $: {
       p.series === 0 ? yScaleTemp(p.y) : yScaleHumid(p.y),
       p.series
     ]);
-    const delaunayGrid = Delaunay.from(pointsScaled);
-    voronoiGrid = delaunayGrid.voronoi([0, 0, width, height]);
+    
+    // Only create Voronoi diagram for reasonable number of points
+    if (pointsScaled.length <= 5000) {
+      const delaunayGrid = Delaunay.from(pointsScaled);
+      voronoiGrid = delaunayGrid.voronoi([0, 0, width, height]);
+    } else {
+      voronoiGrid = null; // Skip for very large datasets
+    }
 
     xTicks = xScale.ticks(8);
     yTicksTemp = yScaleTemp.ticks(6);
     yTicksHumid = yScaleHumid.ticks(6);
+  }
+
+  // Throttled reactive update
+  $: if (chartData.length > 0) {
+    if (chartUpdateTimeout) {
+      clearTimeout(chartUpdateTimeout);
+    }
+    chartUpdateTimeout = setTimeout(updateChart, 100); // 100ms throttle
   }
 </script>
 
@@ -158,7 +216,6 @@ $: {
     bind:value={timeRange}
     title="Enter custom time range using 'd', 'h', 'm'. Example: '2d5h30m'"
   />
-
 
   <div  style="width: 50px;"></div>
   <!-- Toggle buttons -->
@@ -177,6 +234,21 @@ $: {
 >
   Humid
 </button>
+</div>
+
+<!-- Status indicators -->
+<div class="status">
+  {#if isLoading}
+    <span class="loading">Loading data...</span>
+  {:else if error}
+    <span class="error">Error: {error}</span>
+  {:else if fullData.length > 0}
+    <span class="info">
+      {fullData.length} total data points | 
+      {chartData.length} points in range | 
+      {Math.min(2000, chartData.length)} points displayed
+    </span>
+  {/if}
 </div>
 
 <!-- Chart stays the same as your original -->
@@ -220,10 +292,12 @@ $: {
         {/each}
       </g>
 
-      {#each points as p, i}
-        <path fill-opacity="0" d={voronoiGrid.renderCell(i)}
-          on:mouseover={(e) => dotInfo = [p, i, e]}/>
-      {/each}
+      {#if voronoiGrid}
+        {#each points as p, i}
+          <path fill-opacity="0" d={voronoiGrid.renderCell(i)}
+            on:mouseover={(e) => dotInfo = [p, i, e]}/>
+        {/each}
+      {/if}
     </svg>
   {/if}
 </div>
@@ -278,6 +352,30 @@ $: {
     font-size: 12px;
     box-shadow: rgba(0,0,0,0.4) 0px 2px 4px,
                 rgba(0,0,0,0.3) 0px 7px 13px -3px;
+  }
+  
+  .status {
+    margin: 10px 0;
+    text-align: center;
+    font-size: 0.9rem;
+    color: #ccc;
+  }
+  
+  .loading {
+    color: #4db6ff;
+    font-weight: bold;
+  }
+  
+  .error {
+    color: #ff6b81;
+    font-weight: bold;
+  }
+  
+  .info {
+    color: #ccc;
+    background-color: #2a2a2a;
+    padding: 4px 8px;
+    border-radius: 4px;
   }
 
     button {

@@ -10,22 +10,21 @@
 		
 	});
 
-	async function fetchData() {
-		ifFetch = true
-		try {
-			const res = await fetch('http://epsilon.local:3000/get');
-			const json = await res.json();
-			console.log(json);
-			data = {
-				temp: json.Temp,
-				humid: json.Humid
-			}
-			console.log('Fetched data:', data);
-		} catch (err) {
-			console.error('Error fetching data:', err);
-		}
-		ifFetch = false
-	}
+async function fetchData() {
+    ifFetch = true;
+    try {
+        const res = await fetch('http://epsilon.local:3000/get');
+        const json = await res.json();
+        
+        data = {
+            temp: json.temp || json.Temp,
+            humid: json.humid || json.Humid
+        };
+    } catch (err) {
+        console.error('Error fetching data:', err);
+    }
+    ifFetch = false;
+}
 
 
 	let perceivedTemperature = 0;
