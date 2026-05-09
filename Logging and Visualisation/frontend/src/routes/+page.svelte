@@ -5,6 +5,7 @@
 	import History from './History.svelte';
 	import Outside from './Outside.svelte';
 	import Year from './Year.svelte';
+	import Tweaks from './Tweaks.svelte';
 	import { onMount } from 'svelte';
 
 	const cached = typeof localStorage !== 'undefined'
@@ -102,7 +103,8 @@
 
 <TopBar lastTimestamp={lastFetchTime} />
 <Hero temp={data.temp} humid={data.humid} {outside} />
-<Outside {outside} />
+<Outside inside={data} {outside} />
 <LineChart />
 <History />
 <Year />
+<Tweaks />

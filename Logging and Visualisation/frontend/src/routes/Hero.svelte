@@ -1,13 +1,8 @@
 <script>
-	import { onMount, onDestroy } from 'svelte';
+	import { onDestroy } from 'svelte';
 
 	let { temp = null, humid = null, outside = null } = $props();
 
-	let trendDelta = $state(0);
-	let trendDir = $state('flat');
-
-	const outsideTemp = $derived(outside?.temp ?? null);
-	const outsideHumid = $derived(outside?.humid ?? null);
 	const outsideCondition = $derived(outside?.condition ?? '');
 
 	let now = $state(new Date());
@@ -23,18 +18,6 @@
 
 	const feelsLike = $derived(computeFeelsLike(temp, humid));
 	const cond = $derived(getCondition(temp, humid));
-	const rec = $derived(getRecommendation(temp, humid, outsideTemp, outsideHumid));
-
-	function getRecommendation(tI, hI, tO, hO) {
-		if (tI == null || tO == null) return { state: 'neutral', verb: 'Up to you', why: 'Loading outdoor data…' };
-		if (tO > tI + 1 && tI > 22) return { state: 'closed', verb: 'Keep windows closed', why: `Outside is ${(tO - tI).toFixed(1)}° warmer.` };
-		if (hO > 70) return { state: 'closed', verb: 'Keep windows closed', why: `Outside humidity is ${hO}% — too damp.` };
-		if (tO < 5) return { state: 'closed', verb: 'Keep windows closed', why: `It's ${tO.toFixed(1)}° outside — heat would escape.` };
-		if (tI > 23.5 && tO < tI - 1.5) return { state: 'open', verb: 'Open a window', why: `Outside is ${(tI - tO).toFixed(1)}° cooler — fresh air would help.` };
-		if (hI > 60 && hO < hI - 8) return { state: 'open', verb: 'Crack a window', why: `Drier outside (${hO}% vs ${hI}%) — venting would help.` };
-		if (tO < tI - 6) return { state: 'closed', verb: 'Keep windows closed', why: `${(tI - tO).toFixed(1)}° colder outside — not worth the heat loss.` };
-		return { state: 'neutral', verb: 'Up to you', why: 'Conditions are similar inside and out.' };
-	}
 
 	function computeFeelsLike(t, h) {
 		if (t == null || h == null) return null;
@@ -65,35 +48,6 @@
 		return { word: 'Comfortable', hint: 'All quiet' };
 	}
 
-	onMount(() => {
-		fetchTrend();
-	});
-
-	async function fetchTrend() {
-		try {
-			const res = await fetch('http://epsilon.local:3000/data?range=24h&aggregate=1h');
-			const json = await res.json();
-			// Backend returns DESC order (newest first)
-			const pts = (json.data || [])
-				.map(d => parseFloat(d.temp))
-				.filter(v => !isNaN(v));
-			if (pts.length >= 4) {
-				const chunk = Math.max(1, Math.floor(pts.length * 0.2));
-				const newest = pts.slice(0, chunk).reduce((a, b) => a + b, 0) / chunk;
-				const oldest = pts.slice(-chunk).reduce((a, b) => a + b, 0) / chunk;
-				trendDelta = newest - oldest;
-				trendDir = Math.abs(trendDelta) < 0.3 ? 'flat' : trendDelta > 0 ? 'up' : 'down';
-			}
-		} catch (e) {
-			console.error('Trend fetch failed', e);
-		}
-	}
-
-	const trendArrowPath = $derived(
-		trendDir === 'up' ? 'M2 11 L7 5 L12 11' :
-		trendDir === 'down' ? 'M2 5 L7 11 L12 5' :
-		'M2 8 L12 8'
-	);
 </script>
 
 <section class="hero">
@@ -119,20 +73,6 @@
 			{#if cond.hint}
 				<div class="hero-hint">{cond.hint}</div>
 			{/if}
-			<div class="hero-rec">
-				<span class="hero-rec-badge" data-state={rec.state}>
-					<svg width="11" height="11" viewBox="0 0 14 14" aria-hidden="true">
-						<rect x="2" y="2" width="10" height="10" rx="1.4" fill="none" stroke="currentColor" stroke-width="1.4"/>
-						<line x1="7" y1="2" x2="7" y2="12" stroke="currentColor" stroke-width="1.4"/>
-						<line x1="2" y1="7" x2="12" y2="7" stroke="currentColor" stroke-width="1.4"/>
-						{#if rec.state === 'open'}
-							<path d="M9 4 L11 4 L11 6" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
-						{/if}
-					</svg>
-					{rec.verb}
-				</span>
-				<span class="hero-rec-why">{rec.why}</span>
-			</div>
 		</div>
 	</div>
 
@@ -148,26 +88,6 @@
 			<div class="stat-label">Humidity</div>
 			<div class="stat-value humid">
 				{humid != null ? humid : '—'}<span class="stat-unit">%</span>
-			</div>
-		</div>
-		<div class="stat-sep" aria-hidden="true"></div>
-		<div class="stat">
-			<div class="stat-label">Outside</div>
-			<div class="stat-value">
-				{outsideTemp != null ? outsideTemp.toFixed(1) : '—'}<span class="stat-unit">°</span>
-			</div>
-		</div>
-		<div class="stat-sep" aria-hidden="true"></div>
-		<div class="stat">
-			<div class="stat-label">24h trend</div>
-			<div class="stat-value">
-				<svg width="14" height="14" viewBox="0 0 14 16" aria-hidden="true" class="trend-arrow">
-					<path d={trendArrowPath} fill="none" stroke="var(--accent-temp)"
-						stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-				</svg>
-				<span class="stat-delta">
-					{trendDelta > 0 ? '+' : ''}{trendDelta.toFixed(1)}°
-				</span>
 			</div>
 		</div>
 	</div>

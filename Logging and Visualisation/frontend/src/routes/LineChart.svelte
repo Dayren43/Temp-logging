@@ -1,5 +1,6 @@
 <script>
   import { onMount } from 'svelte';
+  import { tweaks } from '$lib/tweaks.svelte.js';
 
   // ── Layout ─────────────────────────────────────────────────────────────────
   const PAD   = { l: 44, r: 44, t: 20, b: 32 };
@@ -345,14 +346,16 @@
 
         <!-- Series: areas then lines (order: humid, feels, temp — temp on top) -->
         <g clip-path="url(#clip-plot)">
-          {#if showHumid}
-            <path d={humidArea} fill="url(#grad-humid)"/>
-          {/if}
-          {#if showFeels}
-            <path d={feelsArea} fill="url(#grad-feels)"/>
-          {/if}
-          {#if showTemp}
-            <path d={tempArea} fill="url(#grad-temp)"/>
+          {#if tweaks.chartStyle === 'area'}
+            {#if showHumid}
+              <path d={humidArea} fill="url(#grad-humid)"/>
+            {/if}
+            {#if showFeels}
+              <path d={feelsArea} fill="url(#grad-feels)"/>
+            {/if}
+            {#if showTemp}
+              <path d={tempArea} fill="url(#grad-temp)"/>
+            {/if}
           {/if}
 
           {#if showHumid}
