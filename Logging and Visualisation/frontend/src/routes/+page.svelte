@@ -2,6 +2,7 @@
 	import LineChart from './LineChart.svelte';
 	import TopBar from './TopBar.svelte';
 	import Hero from './Hero.svelte';
+	import History from './History.svelte';
 	import { onMount } from 'svelte';
 
 	const cached = typeof localStorage !== 'undefined'
@@ -55,3 +56,4 @@
 <TopBar lastTimestamp={lastFetchTime} />
 <Hero temp={data.temp} humid={data.humid} />
 <LineChart />
+<History />
