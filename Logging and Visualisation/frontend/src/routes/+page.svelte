@@ -3,6 +3,8 @@
 	import TopBar from './TopBar.svelte';
 	import Hero from './Hero.svelte';
 	import History from './History.svelte';
+	import Outside from './Outside.svelte';
+	import Year from './Year.svelte';
 	import { onMount } from 'svelte';
 
 	const cached = typeof localStorage !== 'undefined'
@@ -11,12 +13,14 @@
 
 	let data = $state(cached ?? { temp: null, humid: null });
 	let lastFetchTime = $state(cached?.fetchTime ?? null);
+	let outside = $state(null);
 	let ifFetch = false;
 
 	onMount(async () => {
 		// Show the latest DB row if no cache, then replace with live reading
 		if (!cached) fetchLatestFromDB();
 		fetchLive();
+		fetchOutside();
 	});
 
 	async function fetchLatestFromDB() {
@@ -47,6 +51,49 @@
 		}
 		ifFetch = false;
 	}
+
+	async function fetchOutside() {
+		try {
+			const res = await fetch(
+				'https://api.open-meteo.com/v1/forecast?latitude=59.425&longitude=17.865' +
+				'&current=temperature_2m,relative_humidity_2m,weather_code,apparent_temperature,windspeed_10m' +
+				'&hourly=temperature_2m&forecast_days=2&timezone=Europe%2FStockholm'
+			);
+			const json = await res.json();
+			const nowHour = new Date().toISOString().slice(0, 13);
+			const startIdx = json.hourly.time.findIndex(t => t.startsWith(nowHour));
+			const from = startIdx >= 0 ? startIdx : 0;
+			const hourly = json.hourly.time.slice(from, from + 12).map((t, i) => ({
+				t: new Date(t).getTime(),
+				hour: new Date(t).getHours(),
+				temp: json.hourly.temperature_2m[from + i]
+			}));
+			outside = {
+				temp: json.current.temperature_2m,
+				feels: json.current.apparent_temperature,
+				humid: json.current.relative_humidity_2m,
+				wind: Math.round(json.current.windspeed_10m),
+				condition: wmoToCondition(json.current.weather_code),
+				hourly,
+				updatedAt: Date.now()
+			};
+		} catch (e) {
+			console.error('Outside weather fetch failed', e);
+		}
+	}
+
+	function wmoToCondition(code) {
+		if (code === 0) return 'clear sky';
+		if (code === 1) return 'mainly clear';
+		if (code === 2) return 'partly cloudy';
+		if (code === 3) return 'overcast';
+		if (code <= 48) return 'foggy';
+		if (code <= 55) return 'drizzle';
+		if (code <= 65) return 'rainy';
+		if (code <= 77) return 'snowy';
+		if (code <= 82) return 'showers';
+		return 'thunderstorm';
+	}
 </script>
 
 <svelte:head>
@@ -54,6 +101,8 @@
 </svelte:head>
 
 <TopBar lastTimestamp={lastFetchTime} />
-<Hero temp={data.temp} humid={data.humid} />
+<Hero temp={data.temp} humid={data.humid} {outside} />
+<Outside {outside} />
 <LineChart />
 <History />
+<Year />

@@ -121,6 +121,39 @@ if (range && range !== 'all') {
 });
 
 /**
+ * /monthly endpoint — per-month aggregates for the last N months
+ */
+app.get("/monthly", async (req, res) => {
+  const months = Math.min(parseInt(req.query.months) || 12, 60);
+  try {
+    const query = `
+      SELECT
+        date_trunc('month', timestamp) AS month,
+        ROUND(AVG(temp)::numeric, 2)   AS avg_temp,
+        ROUND(MIN(temp)::numeric, 2)   AS min_temp,
+        ROUND(MAX(temp)::numeric, 2)   AS max_temp,
+        ROUND(AVG(humid)::numeric, 1)  AS avg_humid,
+        COUNT(*)                       AS data_points,
+        ROUND(
+          100.0 * COUNT(*) FILTER (
+            WHERE temp >= 20 AND temp <= 24
+              AND humid >= 35 AND humid <= 60
+          ) / NULLIF(COUNT(*), 0)
+        , 1) AS comfort_pct
+      FROM "environmental_data"
+      WHERE timestamp >= date_trunc('month', NOW()) - ($1 - 1) * INTERVAL '1 month'
+      GROUP BY month
+      ORDER BY month ASC
+    `;
+    const result = await pool.query(query, [months]);
+    res.json({ data: result.rows, months });
+  } catch (err) {
+    console.error("Monthly query error:", err);
+    res.status(500).send("Database error");
+  }
+});
+
+/**
  * /get endpoint (proxy to sensor)
  */
 app.get("/get", async (req, res) => {

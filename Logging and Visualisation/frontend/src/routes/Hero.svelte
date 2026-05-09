@@ -1,14 +1,14 @@
 <script>
 	import { onMount, onDestroy } from 'svelte';
 
-	let { temp = null, humid = null } = $props();
-
-	let outsideTemp = $state(null);
-	let outsideHumid = $state(null);
-	let outsideCondition = $state('');
+	let { temp = null, humid = null, outside = null } = $props();
 
 	let trendDelta = $state(0);
 	let trendDir = $state('flat');
+
+	const outsideTemp = $derived(outside?.temp ?? null);
+	const outsideHumid = $derived(outside?.humid ?? null);
+	const outsideCondition = $derived(outside?.condition ?? '');
 
 	let now = $state(new Date());
 	const tick = setInterval(() => { now = new Date(); }, 60_000);
@@ -24,6 +24,17 @@
 	const feelsLike = $derived(computeFeelsLike(temp, humid));
 	const cond = $derived(getCondition(temp, humid));
 	const rec = $derived(getRecommendation(temp, humid, outsideTemp, outsideHumid));
+
+	function getRecommendation(tI, hI, tO, hO) {
+		if (tI == null || tO == null) return { state: 'neutral', verb: 'Up to you', why: 'Loading outdoor data…' };
+		if (tO > tI + 1 && tI > 22) return { state: 'closed', verb: 'Keep windows closed', why: `Outside is ${(tO - tI).toFixed(1)}° warmer.` };
+		if (hO > 70) return { state: 'closed', verb: 'Keep windows closed', why: `Outside humidity is ${hO}% — too damp.` };
+		if (tO < 5) return { state: 'closed', verb: 'Keep windows closed', why: `It's ${tO.toFixed(1)}° outside — heat would escape.` };
+		if (tI > 23.5 && tO < tI - 1.5) return { state: 'open', verb: 'Open a window', why: `Outside is ${(tI - tO).toFixed(1)}° cooler — fresh air would help.` };
+		if (hI > 60 && hO < hI - 8) return { state: 'open', verb: 'Crack a window', why: `Drier outside (${hO}% vs ${hI}%) — venting would help.` };
+		if (tO < tI - 6) return { state: 'closed', verb: 'Keep windows closed', why: `${(tI - tO).toFixed(1)}° colder outside — not worth the heat loss.` };
+		return { state: 'neutral', verb: 'Up to you', why: 'Conditions are similar inside and out.' };
+	}
 
 	function computeFeelsLike(t, h) {
 		if (t == null || h == null) return null;
@@ -54,48 +65,9 @@
 		return { word: 'Comfortable', hint: 'All quiet' };
 	}
 
-	function getRecommendation(tI, hI, tO, hO) {
-		if (tI == null || tO == null) return { state: 'neutral', verb: 'Up to you', why: 'Loading outdoor data…' };
-		if (tO > tI + 1 && tI > 22) return { state: 'closed', verb: 'Keep windows closed', why: `Outside is ${(tO - tI).toFixed(1)}° warmer.` };
-		if (hO > 70) return { state: 'closed', verb: 'Keep windows closed', why: `Outside humidity is ${hO}% — too damp.` };
-		if (tO < 5) return { state: 'closed', verb: 'Keep windows closed', why: `It's ${tO.toFixed(1)}° outside — heat would escape.` };
-		if (tI > 23.5 && tO < tI - 1.5) return { state: 'open', verb: 'Open a window', why: `Outside is ${(tI - tO).toFixed(1)}° cooler — fresh air would help.` };
-		if (hI > 60 && hO < hI - 8) return { state: 'open', verb: 'Crack a window', why: `Drier outside (${hO}% vs ${hI}%) — venting would help.` };
-		if (tO < tI - 6) return { state: 'closed', verb: 'Keep windows closed', why: `${(tI - tO).toFixed(1)}° colder outside — not worth the heat loss.` };
-		return { state: 'neutral', verb: 'Up to you', why: 'Conditions are similar inside and out.' };
-	}
-
-	function wmoToCondition(code) {
-		if (code === 0) return 'clear sky';
-		if (code === 1) return 'mainly clear';
-		if (code === 2) return 'partly cloudy';
-		if (code === 3) return 'overcast';
-		if (code <= 48) return 'foggy';
-		if (code <= 55) return 'drizzle';
-		if (code <= 65) return 'rainy';
-		if (code <= 77) return 'snowy';
-		if (code <= 82) return 'showers';
-		return 'thunderstorm';
-	}
-
 	onMount(() => {
-		fetchOutside();
 		fetchTrend();
 	});
-
-	async function fetchOutside() {
-		try {
-			const res = await fetch(
-				'https://api.open-meteo.com/v1/forecast?latitude=59.425&longitude=17.865&current=temperature_2m,relative_humidity_2m,weather_code&timezone=Europe%2FStockholm'
-			);
-			const json = await res.json();
-			outsideTemp = json.current.temperature_2m;
-			outsideHumid = json.current.relative_humidity_2m;
-			outsideCondition = wmoToCondition(json.current.weather_code);
-		} catch (e) {
-			console.error('Outside weather fetch failed', e);
-		}
-	}
 
 	async function fetchTrend() {
 		try {
