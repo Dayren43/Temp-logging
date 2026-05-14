@@ -1,5 +1,6 @@
 <script>
 	import { onDestroy } from 'svelte';
+	import { SENSOR } from '$lib/config.js';
 
 	let { lastTimestamp = null } = $props();
 
@@ -31,21 +32,10 @@
 		<div class="datepill-date">{shortDate}</div>
 	</div>
 
-	<nav class="rooms" aria-label="Sensor location">
-		<button class="room is-active" type="button">
-			<span class="room-dot"></span>
-			Living room
-		</button>
-		<button class="room is-disabled" type="button" title="Multi-sensor coming soon" disabled>
-			<span class="room-dot is-off"></span>
-			Bedroom
-		</button>
-		<button class="room is-disabled" type="button" disabled>
-			<span class="room-dot is-off"></span>
-			Office
-		</button>
-		<button class="room-add" type="button" aria-label="Add sensor">+</button>
-	</nav>
+	<div class="sensor" aria-label="Sensor location">
+		<span class="sensor-dot"></span>
+		<span class="sensor-name">{SENSOR.name}</span>
+	</div>
 
 	<div class="meta">
 		<span class="status-dot" aria-hidden="true"></span>
@@ -66,9 +56,10 @@
 			grid-template-columns: 1fr 1fr;
 			grid-template-rows: auto auto;
 		}
-		.rooms {
+		.sensor {
 			grid-column: 1 / -1;
 			order: -1;
+			justify-self: center;
 		}
 	}
 
@@ -95,77 +86,26 @@
 		color: var(--ink-4);
 	}
 
-	.rooms {
-		display: flex;
-		align-items: center;
-		gap: 4px;
-		justify-content: center;
-	}
-
-	.room {
-		appearance: none;
-		background: transparent;
-		border: 1px solid transparent;
-		color: var(--ink-3);
-		padding: 7px 14px;
-		border-radius: 999px;
-		font: inherit;
-		font-size: 13px;
-		cursor: pointer;
+	.sensor {
 		display: inline-flex;
 		align-items: center;
 		gap: 8px;
-		transition: color 0.15s, background 0.15s, border-color 0.15s;
-	}
-
-	.room:hover:not(:disabled) { color: var(--ink-2); }
-
-	.room.is-active {
+		justify-self: center;
+		padding: 7px 14px;
+		border: 1px solid var(--hairline-strong);
+		border-radius: 999px;
 		background: var(--surface);
-		border-color: var(--hairline-strong);
 		color: var(--ink);
+		font-size: 13px;
 	}
 
-	.room.is-disabled {
-		color: var(--ink-4);
-		cursor: default;
-	}
-
-	.room-dot {
+	.sensor-dot {
 		width: 7px;
 		height: 7px;
 		border-radius: 50%;
-		background: #c8d8b0;
-		box-shadow: 0 0 0 3px rgba(200, 216, 176, 0.18);
+		background: var(--accent-feels);
+		box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-feels) 18%, transparent);
 		flex-shrink: 0;
-	}
-
-	.room-dot.is-off {
-		background: var(--ink-4);
-		box-shadow: none;
-	}
-
-	.room-add {
-		appearance: none;
-		width: 28px;
-		height: 28px;
-		border-radius: 50%;
-		background: transparent;
-		border: 1px dashed var(--hairline-strong);
-		color: var(--ink-3);
-		font-size: 16px;
-		line-height: 1;
-		cursor: pointer;
-		margin-left: 4px;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		transition: color 0.15s, border-color 0.15s;
-	}
-
-	.room-add:hover {
-		color: var(--ink);
-		border-color: var(--ink-3);
 	}
 
 	.meta {
@@ -183,14 +123,14 @@
 		width: 6px;
 		height: 6px;
 		border-radius: 50%;
-		background: #c8d8b0;
-		box-shadow: 0 0 0 3px rgba(200, 216, 176, 0.16);
+		background: var(--accent-feels);
+		box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-feels) 16%, transparent);
 		flex-shrink: 0;
 		animation: pulse 2.4s ease-in-out infinite;
 	}
 
 	@keyframes pulse {
-		0%, 100% { box-shadow: 0 0 0 3px rgba(200, 216, 176, 0.16); }
-		50%       { box-shadow: 0 0 0 5px rgba(200, 216, 176, 0.06); }
+		0%, 100% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-feels) 16%, transparent); }
+		50%       { box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent-feels)  6%, transparent); }
 	}
 </style>

@@ -1,5 +1,6 @@
 <script>
   import { onMount } from 'svelte';
+  import { COMFORT } from '$lib/config.js';
 
   // ── Data ────────────────────────────────────────────────────────────────────
   let raw       = [];   // hourly points [{time, temp, humid}]
@@ -23,8 +24,10 @@
     }
   });
 
-  // ── Bucket by calendar day ──────────────────────────────────────────────────
-  $: days = bucketByDay(raw);
+  // ── Bucket by calendar day, keep only the last 7 full(er) days ──────────────
+  $: days = bucketByDay(raw).slice(-7);
+  $: cutoff = days.length ? days[0].label : null;
+  $: recentRaw = cutoff ? raw.filter(p => p.time >= cutoff) : raw;
 
   function bucketByDay(data) {
     const map = new Map();
@@ -45,56 +48,29 @@
     }));
   }
 
-  // ── Hourly averages (0–23) across all days ──────────────────────────────────
-  $: hourly = computeHourly(raw);
-
-  function computeHourly(data) {
-    const buckets = Array.from({ length: 24 }, () => ({ ts: [], hs: [] }));
-    for (const p of data) buckets[p.time.getHours()].ts.push(p.temp);
-    return buckets.map((b, hr) => ({
-      hr,
-      t: b.ts.length ? b.ts.reduce((a, x) => a + x, 0) / b.ts.length : null,
-    }));
-  }
-
-  $: warmest = hourly.reduce((acc, b) => b.t != null && (acc == null || b.t > acc.t) ? b : acc, null);
-  $: coolest = hourly.reduce((acc, b) => b.t != null && (acc == null || b.t < acc.t) ? b : acc, null);
-
-  // ── Comfort share ────────────────────────────────────────────────────────────
-  $: comfortShare = raw.length
-    ? raw.filter(p => p.temp >= 20 && p.temp <= 24).length / raw.length
+  // ── Comfort share (for header totals) ────────────────────────────────────────
+  $: comfortPct = recentRaw.length
+    ? Math.round(recentRaw.filter(p => p.temp >= COMFORT.lo && p.temp <= COMFORT.hi).length / recentRaw.length * 100)
     : 0;
-  $: comfortPct = Math.round(comfortShare * 100);
-  const RING_R  = 28;
-  const RING_C  = 2 * Math.PI * RING_R;
-  $: ringOffset = RING_C * (1 - comfortShare);
 
-  // ── Today vs yesterday ──────────────────────────────────────────────────────
-  $: today     = days[days.length - 1]     ?? null;
-  $: yesterday = days[days.length - 2]     ?? null;
-  $: dayDelta  = today && yesterday ? today.tAvg - yesterday.tAvg : 0;
-  $: deltaWord = Math.abs(dayDelta) < 0.2  ? 'about the same'
-               : dayDelta > 0              ? 'warmer'
-               :                             'cooler';
+  // ── Day vs night averages (day 08–22, night 22–08) ──────────────────────────
+  $: dayNight = computeDayNight(recentRaw);
 
-  // ── Daily rhythm curve ───────────────────────────────────────────────────────
-  const RH_W = 240, RH_H = 60;
-  $: rhythmPath = buildRhythmPath(hourly);
-
-  function buildRhythmPath(hrs) {
-    const ts    = hrs.map(h => h.t).filter(v => v != null);
-    if (!ts.length) return '';
-    const lo    = Math.min(...ts), hi = Math.max(...ts), span = hi - lo || 1;
-    const pts   = hrs.map((h, i) => {
-      const x = (i / 23) * RH_W;
-      const y = h.t != null ? RH_H - ((h.t - lo) / span) * (RH_H - 8) - 4 : RH_H;
-      return `${i === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`;
-    });
-    return pts.join(' ');
+  function computeDayNight(data) {
+    if (!data.length) return null;
+    const day = [], night = [];
+    for (const p of data) {
+      const hr = p.time.getHours();
+      (hr >= 8 && hr < 22 ? day : night).push(p.temp);
+    }
+    if (!day.length || !night.length) return null;
+    const avg = arr => arr.reduce((a, b) => a + b, 0) / arr.length;
+    const dayAvg = avg(day), nightAvg = avg(night);
+    return { dayAvg, nightAvg, delta: dayAvg - nightAvg };
   }
 
   // ── Driest stretch ───────────────────────────────────────────────────────────
-  $: driest = findDriest(raw);
+  $: driest = findDriest(recentRaw);
 
   function findDriest(data) {
     if (!data.length) return { len: 0, start: null, end: null, threshold: 35 };
@@ -127,11 +103,9 @@
   // ── Week summary ─────────────────────────────────────────────────────────────
   $: weekAvgTemp  = days.length ? days.reduce((a, d) => a + d.tAvg, 0) / days.length : null;
   $: weekAvgHumid = days.length ? days.reduce((a, d) => a + d.hAvg, 0) / days.length : null;
-  $: weekMaxSwing = days.length ? Math.max(...days.map(d => d.tMax - d.tMin)) : null;
 
   // ── Daily highs/lows bar chart ───────────────────────────────────────────────
-  $: barDays  = days.slice(-7);
-  $: barTemps = barDays.flatMap(d => [d.tMin, d.tMax]);
+  $: barTemps = days.flatMap(d => [d.tMin, d.tMax]);
   $: barLo    = barTemps.length ? Math.min(...barTemps) : 0;
   $: barHi    = barTemps.length ? Math.max(...barTemps) : 1;
   $: barSpan  = barHi - barLo || 1;
@@ -139,49 +113,37 @@
   function fmtDay(d) {
     return d.label.toLocaleDateString(undefined, { weekday: 'short' });
   }
-  function fmtHour(hr) {
-    return hr == null ? '—' : `${String(hr).padStart(2, '0')}:00`;
-  }
 </script>
 
 {#if !loading && raw.length}
 <section class="history">
   <div class="history-head">
     <h2 class="history-title">Last 7 days</h2>
-    <div class="history-sub">{days.length} days · {raw.length} readings</div>
+    {#if weekAvgTemp != null}
+    <div class="history-totals">
+      <div class="history-total">
+        <span class="history-total-label">Week avg</span>
+        <span class="history-total-value temp">{weekAvgTemp.toFixed(1)}°</span>
+      </div>
+      <div class="history-total">
+        <span class="history-total-label">Avg humidity</span>
+        <span class="history-total-value humid">{Math.round(weekAvgHumid)}%</span>
+      </div>
+      <div class="history-total">
+        <span class="history-total-label">In comfort</span>
+        <span class="history-total-value">{comfortPct}%</span>
+      </div>
+    </div>
+    {/if}
   </div>
 
   <div class="history-grid">
 
-    <!-- 1. Today vs yesterday -->
-    <div class="hbox">
-      <div class="hbox-label">Today vs yesterday</div>
-      <div class="hbox-hero">
-        <span class="hbox-num" style:color="var(--accent-temp)">
-          {dayDelta >= 0 ? '+' : ''}{dayDelta.toFixed(1)}
-        </span>
-        <span class="hbox-unit">°C</span>
-      </div>
-      <div class="hbox-foot">
-        <span class="hbox-line">{deltaWord} on average</span>
-        <div class="hbox-mini">
-          <div class="hbox-mini-row">
-            <span>Yesterday</span>
-            <b>{yesterday ? yesterday.tAvg.toFixed(1) + '°' : '—'}</b>
-          </div>
-          <div class="hbox-mini-row">
-            <span>Today</span>
-            <b>{today ? today.tAvg.toFixed(1) + '°' : '—'}</b>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 2. Daily highs & lows -->
+    <!-- 1. Daily highs & lows -->
     <div class="hbox">
       <div class="hbox-label">Daily highs &amp; lows</div>
       <div class="hbox-bars">
-        {#each barDays as d}
+        {#each days as d}
           {@const top = ((barHi - d.tMax) / barSpan) * 100}
           {@const bot = ((barHi - d.tMin) / barSpan) * 100}
           <div class="hbox-bar-col">
@@ -196,63 +158,41 @@
       </div>
     </div>
 
-    <!-- 3. Time in comfort zone -->
+    <!-- 2. Day vs night -->
     <div class="hbox">
-      <div class="hbox-label">Time in comfort zone</div>
-      <div class="hbox-ring">
-        <svg width="84" height="84" viewBox="0 0 84 84" aria-hidden="true">
-          <circle cx="42" cy="42" r={RING_R} fill="none"
-            stroke="rgba(245,235,224,0.08)" stroke-width="6"/>
-          <circle cx="42" cy="42" r={RING_R} fill="none"
-            stroke="var(--accent-comfort)" stroke-width="6"
-            stroke-linecap="round"
-            stroke-dasharray={RING_C}
-            stroke-dashoffset={ringOffset}
-            transform="rotate(-90 42 42)"/>
-          <text x="42" y="47" text-anchor="middle"
-            font-size="20" font-family="'Instrument Serif', serif"
-            font-variant-numeric="tabular-nums"
-            fill="var(--ink)">{comfortPct}%</text>
-        </svg>
-        <div class="hbox-ring-meta">
-          <div class="hbox-ring-line">of the week</div>
-          <div class="hbox-ring-sub">between 20° and 24°</div>
+      <div class="hbox-label">Day vs night</div>
+      {#if dayNight}
+        <div class="hbox-dn">
+          <div class="dn-pair">
+            <div class="dn-pair-label">Day</div>
+            <div class="dn-pair-value" style:color="var(--accent-temp)">{dayNight.dayAvg.toFixed(1)}°</div>
+            <div class="dn-pair-sub">08–22</div>
+          </div>
+          <div class="dn-arrow" aria-hidden="true">{dayNight.delta >= 0 ? '↓' : '↑'}</div>
+          <div class="dn-pair">
+            <div class="dn-pair-label">Night</div>
+            <div class="dn-pair-value" style:color="var(--accent-feels)">{dayNight.nightAvg.toFixed(1)}°</div>
+            <div class="dn-pair-sub">22–08</div>
+          </div>
         </div>
-      </div>
-    </div>
-
-    <!-- 4. Daily rhythm -->
-    <div class="hbox">
-      <div class="hbox-label">Daily rhythm</div>
-      <div class="hbox-rhythm">
-        <svg viewBox="0 0 {RH_W} {RH_H}" preserveAspectRatio="none" class="rhythm-svg">
-          <path d="{rhythmPath} L {RH_W} {RH_H} L 0 {RH_H} Z"
-            fill="var(--accent-temp)" fill-opacity="0.12"/>
-          <path d={rhythmPath} fill="none"
-            stroke="var(--accent-temp)" stroke-width="1.5"
-            stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        <div class="hbox-rhythm-axis">
-          <span>00</span><span>06</span><span>12</span><span>18</span><span>24</span>
-        </div>
-      </div>
-      <div class="hbox-foot hbox-foot-row">
-        <div class="hbox-pair">
-          <span class="hbox-pair-label">Warmest hour</span>
-          <span class="hbox-pair-value" style:color="var(--accent-temp)">
-            {fmtHour(warmest?.hr)} <em>·</em> {warmest?.t?.toFixed(1)}°
+        <div class="hbox-foot">
+          <span class="hbox-line">
+            {Math.abs(dayNight.delta) < 0.3
+              ? 'Steady overnight'
+              : dayNight.delta > 0
+                ? `Cools ${dayNight.delta.toFixed(1)}° overnight`
+                : `Warms ${Math.abs(dayNight.delta).toFixed(1)}° overnight`}
           </span>
         </div>
-        <div class="hbox-pair">
-          <span class="hbox-pair-label">Coolest hour</span>
-          <span class="hbox-pair-value" style:color="var(--accent-feels)">
-            {fmtHour(coolest?.hr)} <em>·</em> {coolest?.t?.toFixed(1)}°
-          </span>
+      {:else}
+        <div class="hbox-empty">
+          <div class="hbox-empty-icon" aria-hidden="true">~</div>
+          <div class="hbox-empty-line">Not enough data</div>
         </div>
-      </div>
+      {/if}
     </div>
 
-    <!-- 5. Driest stretch -->
+    <!-- 3. Driest stretch -->
     <div class="hbox">
       <div class="hbox-label">Driest stretch</div>
       {#if driestHours > 0}
@@ -275,29 +215,6 @@
       {/if}
     </div>
 
-    <!-- 6. Week in numbers -->
-    <div class="hbox">
-      <div class="hbox-label">Week in numbers</div>
-      <ul class="hbox-list">
-        <li>
-          <span>Average</span>
-          <b style:color="var(--accent-temp)">{weekAvgTemp?.toFixed(1)}°</b>
-        </li>
-        <li>
-          <span>Average humidity</span>
-          <b style:color="var(--accent-humid)">{weekAvgHumid != null ? Math.round(weekAvgHumid) + '%' : '—'}</b>
-        </li>
-        <li>
-          <span>Largest daily swing</span>
-          <b>{weekMaxSwing?.toFixed(1)}°</b>
-        </li>
-        <li>
-          <span>Days tracked</span>
-          <b>{days.length}</b>
-        </li>
-      </ul>
-    </div>
-
   </div>
 </section>
 {/if}
@@ -312,8 +229,10 @@
 
   .history-head {
     display: flex;
-    align-items: baseline;
+    align-items: flex-end;
     justify-content: space-between;
+    gap: 24px;
+    flex-wrap: wrap;
     padding: 0 2px;
   }
 
@@ -325,15 +244,41 @@
     font-weight: 400;
     color: var(--ink);
     letter-spacing: -0.005em;
+    line-height: 1.1;
   }
 
-  .history-sub {
-    font-size: 11.5px;
-    letter-spacing: 0.12em;
+  .history-totals {
+    display: flex;
+    gap: 28px;
+    align-items: flex-end;
+    flex-shrink: 0;
+  }
+
+  .history-total {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+  }
+
+  .history-total-label {
+    font-family: 'Geist Mono', ui-monospace, monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--ink-4);
-    font-family: 'Geist Mono', ui-monospace, monospace;
   }
+
+  .history-total-value {
+    font-family: 'Instrument Serif', serif;
+    font-size: 22px;
+    line-height: 1;
+    color: var(--ink-2);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .history-total-value.temp  { color: var(--accent-temp); }
+  .history-total-value.humid { color: var(--accent-humid); }
 
   .history-grid {
     display: grid;
@@ -344,6 +289,7 @@
   @media (max-width: 1080px) { .history-grid { grid-template-columns: repeat(2, 1fr); } }
   @media (max-width: 680px)  { .history-grid { grid-template-columns: 1fr; } }
 
+
   /* ── Box base ─────────────────────────────────────────────────────────────── */
   .hbox {
     background: var(--surface);
@@ -353,7 +299,6 @@
     display: flex;
     flex-direction: column;
     gap: 12px;
-    min-height: 180px;
     box-shadow: 0 1px 0 rgba(255,255,255,0.02) inset;
   }
 
@@ -386,33 +331,8 @@
     gap: 8px;
   }
 
-  .hbox-foot-row {
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: flex-end;
-  }
-
   .hbox-line { font-size: 13px; color: var(--ink-2); font-family: 'Instrument Serif', serif; font-style: italic; }
   .hbox-sub  { font-size: 11.5px; color: var(--ink-4); font-family: 'Geist Mono', ui-monospace, monospace; }
-
-  /* ── Mini table ──────────────────────────────────────────────────────────── */
-  .hbox-mini {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    padding-top: 6px;
-    border-top: 1px solid var(--hairline);
-  }
-
-  .hbox-mini-row {
-    display: flex;
-    justify-content: space-between;
-    font-size: 12px;
-    color: var(--ink-3);
-    font-variant-numeric: tabular-nums;
-  }
-
-  .hbox-mini-row b { color: var(--ink); font-weight: 500; }
 
   /* ── Bar chart ───────────────────────────────────────────────────────────── */
   .hbox-bars {
@@ -474,80 +394,50 @@
     text-align: center;
   }
 
-  /* ── Donut ring ──────────────────────────────────────────────────────────── */
-  .hbox-ring { display: flex; align-items: center; gap: 14px; flex: 1; }
-
-  .hbox-ring-meta { display: flex; flex-direction: column; gap: 4px; }
-
-  .hbox-ring-line {
-    font-family: 'Instrument Serif', serif;
-    font-style: italic;
-    font-size: 16px;
-    color: var(--ink);
-  }
-
-  .hbox-ring-sub { font-size: 11.5px; color: var(--ink-3); }
-
-  /* ── Daily rhythm ────────────────────────────────────────────────────────── */
-  .hbox-rhythm { display: flex; flex-direction: column; gap: 4px; flex: 1; }
-
-  .rhythm-svg { width: 100%; height: 60px; display: block; }
-
-  .hbox-rhythm-axis {
+  /* ── Day vs night ────────────────────────────────────────────────────────── */
+  .hbox-dn {
     display: flex;
-    justify-content: space-between;
-    font-size: 10px;
-    color: var(--ink-4);
-    font-family: 'Geist Mono', ui-monospace, monospace;
-    letter-spacing: 0.04em;
+    align-items: center;
+    justify-content: space-around;
+    gap: 12px;
+    padding-top: 4px;
   }
 
-  .hbox-pair { display: flex; flex-direction: column; gap: 3px; }
+  .dn-pair {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
 
-  .hbox-pair-label {
-    font-size: 10.5px;
+  .dn-pair-label {
+    font-family: 'Geist Mono', ui-monospace, monospace;
+    font-size: 10px;
     letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--ink-4);
   }
 
-  .hbox-pair-value {
+  .dn-pair-value {
     font-family: 'Instrument Serif', serif;
-    font-size: 20px;
+    font-size: 32px;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
     letter-spacing: -0.01em;
+  }
+
+  .dn-pair-sub {
+    font-family: 'Geist Mono', ui-monospace, monospace;
+    font-size: 9.5px;
+    color: var(--ink-4);
     font-variant-numeric: tabular-nums;
   }
 
-  .hbox-pair-value em { font-style: normal; color: var(--ink-4); margin: 0 4px; }
-
-  /* ── List (week in numbers) ─────────────────────────────────────────────── */
-  .hbox-list {
-    list-style: none;
-    margin: 0; padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .hbox-list li {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    font-size: 12.5px;
+  .dn-arrow {
+    font-family: 'Instrument Serif', serif;
+    font-size: 24px;
     color: var(--ink-3);
-    padding-bottom: 7px;
-    border-bottom: 1px dashed var(--hairline);
-    font-variant-numeric: tabular-nums;
-  }
-
-  .hbox-list li:last-child { border-bottom: 0; padding-bottom: 0; }
-
-  .hbox-list b {
-    font-family: 'Instrument Serif', serif;
-    font-weight: 400;
-    font-size: 18px;
-    color: var(--ink);
-    letter-spacing: -0.01em;
+    line-height: 1;
   }
 
   /* ── Empty state ─────────────────────────────────────────────────────────── */

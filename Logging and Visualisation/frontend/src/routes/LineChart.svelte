@@ -1,15 +1,12 @@
 <script>
   import { onMount } from 'svelte';
   import { tweaks } from '$lib/tweaks.svelte.js';
+  import { COMFORT } from '$lib/config.js';
+  import { apparentTemp } from '$lib/comfort.js';
 
   // ── Layout ─────────────────────────────────────────────────────────────────
   const PAD   = { l: 44, r: 44, t: 20, b: 32 };
-  const T_MIN = 16, T_MAX = 30;   // °C y-domain (indoor sensor)
-  const H_MIN = 20, H_MAX = 80;   // % y-domain
-  const TEMP_TICKS = [16, 18, 20, 22, 24, 26, 28, 30];
-  const HUM_TICKS  = [20, 30, 40, 50, 60, 70, 80];
-  const COMFORT    = { lo: 20, hi: 24 };
-  const TT_W = 168;
+  const TT_W  = 168;
 
   const RANGES = [
     { key: '6h',  label: '6h',  dateTick: false },
@@ -46,18 +43,33 @@
   $: iW = W - PAD.l - PAD.r;
   $: iH = H - PAD.t - PAD.b;
 
-  $: yT  = (v) => PAD.t + iH - ((v - T_MIN) / (T_MAX - T_MIN)) * iH;
-  $: yH  = (v) => PAD.t + iH - ((v - H_MIN) / (H_MAX - H_MIN)) * iH;
-  $: xAt = (i) => PAD.l + (i / Math.max(1, sampled.length - 1)) * iW;
-
-  // ── Feels-like (heat index) ──────────────────────────────────────────────────
-  function heatsIndex(t, h) {
-    const T = t * 9 / 5 + 32, R = h;
-    const F = -42.379 + 2.04901523*T + 10.14333127*R - 0.22475541*T*R
-              - 0.00683783*T*T - 0.05481717*R*R + 0.00122874*T*T*R
-              + 0.00085282*T*R*R - 0.00000199*T*T*R*R;
-    return (F - 32) * 5 / 9;
+  // Dynamic Y-domain: snap to multiples of `step`, always include the must-have values.
+  function computeRange(values, step, mustInclude = []) {
+    const all = [...values.filter(v => Number.isFinite(v)), ...mustInclude];
+    if (!all.length) return { min: 0, max: step * 5 };
+    let lo = Math.min(...all);
+    let hi = Math.max(...all);
+    lo = Math.floor((lo - 1) / step) * step;
+    hi = Math.ceil((hi + 1) / step) * step;
+    if (hi - lo < step * 2) hi = lo + step * 2;
+    return { min: lo, max: hi };
   }
+
+  function makeTicks(min, max, step) {
+    const out = [];
+    for (let v = min; v <= max + 1e-6; v += step) out.push(v);
+    return out;
+  }
+
+  // Temp range covers both temp + feels series and always shows the comfort band.
+  $: tempRange  = computeRange(sampled.flatMap(d => [d.temp, d.feels]), 2, [COMFORT.lo, COMFORT.hi]);
+  $: humidRange = computeRange(sampled.map(d => d.humid), 10);
+  $: TEMP_TICKS = makeTicks(tempRange.min, tempRange.max, 2);
+  $: HUM_TICKS  = makeTicks(humidRange.min, humidRange.max, 10);
+
+  $: yT  = (v) => PAD.t + iH - ((v - tempRange.min)  / (tempRange.max  - tempRange.min))  * iH;
+  $: yH  = (v) => PAD.t + iH - ((v - humidRange.min) / (humidRange.max - humidRange.min)) * iH;
+  $: xAt = (i) => PAD.l + (i / Math.max(1, sampled.length - 1)) * iW;
 
   // ── Sampled data (max 2000 pts) with feels-like ─────────────────────────────
   $: {
@@ -65,7 +77,7 @@
       const step = Math.max(1, Math.floor(chartData.length / 2000));
       sampled = chartData
         .filter((_, i) => i % step === 0)
-        .map(d => ({ ...d, feels: heatsIndex(d.temp, d.humid) }));
+        .map(d => ({ ...d, feels: apparentTemp(d.temp, d.humid) }));
     } else {
       sampled = [];
     }
@@ -307,14 +319,14 @@
           </g>
         {/if}
 
-        <!-- Comfort band 20–24°C -->
+        <!-- Comfort band -->
         {#if showComfort && showTemp}
           <g clip-path="url(#clip-plot)">
-            <rect x={PAD.l} y={yT(24)} width={iW} height={yT(20) - yT(24)}
+            <rect x={PAD.l} y={yT(COMFORT.hi)} width={iW} height={yT(COMFORT.lo) - yT(COMFORT.hi)}
               fill="var(--accent-comfort)" fill-opacity="0.08"/>
-            <line x1={PAD.l} x2={PAD.l + iW} y1={yT(24)} y2={yT(24)}
+            <line x1={PAD.l} x2={PAD.l + iW} y1={yT(COMFORT.hi)} y2={yT(COMFORT.hi)}
               stroke="var(--accent-comfort)" stroke-opacity="0.35" stroke-dasharray="2 4"/>
-            <line x1={PAD.l} x2={PAD.l + iW} y1={yT(20)} y2={yT(20)}
+            <line x1={PAD.l} x2={PAD.l + iW} y1={yT(COMFORT.lo)} y2={yT(COMFORT.lo)}
               stroke="var(--accent-comfort)" stroke-opacity="0.35" stroke-dasharray="2 4"/>
           </g>
         {/if}
@@ -446,7 +458,7 @@
       {#if showComfort}
         <button type="button" class="legend-item" on:click={() => showComfort = !showComfort}>
           <span class="legend-band" style:border-color="var(--accent-comfort)"></span>
-          Comfort 20–24°
+          Comfort {COMFORT.lo}–{COMFORT.hi}°
         </button>
       {:else}
         <button type="button" class="legend-item off" on:click={() => showComfort = !showComfort}>

@@ -1,5 +1,4 @@
 <script>
-	import { page } from '$app/state';
 	import github from '$lib/images/github.svg';
 </script>
 
@@ -14,12 +13,11 @@
 <style>
   footer {
     display: flex;
-    justify-content: flex-end; /* or space-between if you have multiple sections */
+    justify-content: flex-end;
     align-items: center;
     padding: 1rem 2rem;
-    background-color: #696969; /* dark gray background so it’s visible */
-    color: white;
-    position: relative; /* keep it in normal flow */
+    color: var(--ink-3);
+    position: relative;
     z-index: 10;
   }
 

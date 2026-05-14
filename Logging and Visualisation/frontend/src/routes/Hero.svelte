@@ -1,5 +1,7 @@
 <script>
 	import { onDestroy } from 'svelte';
+	import { COMFORT } from '$lib/config.js';
+	import { tweaks } from '$lib/tweaks.svelte.js';
 
 	let { temp = null, humid = null, outside = null } = $props();
 
@@ -16,24 +18,7 @@
 	const intPart = $derived(temp != null ? Math.trunc(temp) : '—');
 	const decPart = $derived(temp != null ? Math.abs(Math.round((temp - Math.trunc(temp)) * 10)) : '');
 
-	const feelsLike = $derived(computeFeelsLike(temp, humid));
 	const cond = $derived(getCondition(temp, humid));
-
-	function computeFeelsLike(t, h) {
-		if (t == null || h == null) return null;
-		const T = t * 9 / 5 + 32;
-		const R = h;
-		const HI_F = -42.379 +
-			2.04901523 * T +
-			10.14333127 * R -
-			0.22475541 * T * R -
-			0.00683783 * T * T -
-			0.05481717 * R * R +
-			0.00122874 * T * T * R +
-			0.00085282 * T * R * R -
-			0.00000199 * T * T * R * R;
-		return (HI_F - 32) * 5 / 9;
-	}
 
 	function getCondition(t, h) {
 		if (t == null) return { word: '—', hint: '' };
@@ -44,7 +29,7 @@
 		}
 		if (h > 65) return { word: 'A bit damp', hint: 'Maybe ventilate' };
 		if (h < 30) return { word: 'Dry', hint: 'A plant might disagree' };
-		if (t >= 20 && t <= 24 && h >= 35 && h <= 55) return { word: 'Cozy', hint: 'Right in the pocket' };
+		if (t >= COMFORT.lo && t <= COMFORT.hi && h >= 35 && h <= 55) return { word: 'Cozy', hint: 'Right in the pocket' };
 		return { word: 'Comfortable', hint: 'All quiet' };
 	}
 
@@ -57,7 +42,7 @@
 		<span class="eyebrow-time">{currentTime}</span>
 		<span class="eyebrow-sep" aria-hidden="true"></span>
 		<span class="eyebrow-loc">
-			Järfälla{outsideCondition ? ` · ${outsideCondition}` : ''}
+			{tweaks.locationName}{outsideCondition ? ` · ${outsideCondition}` : ''}
 		</span>
 	</div>
 
@@ -76,21 +61,6 @@
 		</div>
 	</div>
 
-	<div class="hero-stats">
-		<div class="stat">
-			<div class="stat-label">Feels like</div>
-			<div class="stat-value feels">
-				{feelsLike != null ? feelsLike.toFixed(1) : '—'}<span class="stat-unit">°</span>
-			</div>
-		</div>
-		<div class="stat-sep" aria-hidden="true"></div>
-		<div class="stat">
-			<div class="stat-label">Humidity</div>
-			<div class="stat-value humid">
-				{humid != null ? humid : '—'}<span class="stat-unit">%</span>
-			</div>
-		</div>
-	</div>
 </section>
 
 <style>
@@ -187,115 +157,5 @@
 		font-size: 13px;
 		color: var(--ink-3);
 		letter-spacing: 0.01em;
-	}
-
-	.hero-rec {
-		margin-top: 10px;
-		display: flex;
-		flex-direction: column;
-		gap: 4px;
-		align-items: flex-start;
-	}
-
-	.hero-rec-badge {
-		display: inline-flex;
-		align-items: center;
-		gap: 6px;
-		padding: 4px 10px;
-		border-radius: 999px;
-		font-size: 12px;
-		font-weight: 500;
-		border: 1px solid;
-		cursor: default;
-	}
-
-	.hero-rec-badge[data-state="open"] {
-		background: rgba(155, 201, 168, 0.14);
-		border-color: rgba(155, 201, 168, 0.45);
-		color: #c8d8b0;
-	}
-
-	.hero-rec-badge[data-state="closed"] {
-		background: rgba(245, 184, 164, 0.12);
-		border-color: rgba(245, 184, 164, 0.4);
-		color: #f5b8a4;
-	}
-
-	.hero-rec-badge[data-state="neutral"] {
-		background: rgba(245, 235, 224, 0.06);
-		border-color: var(--hairline-strong);
-		color: var(--ink-2);
-	}
-
-	.hero-rec-why {
-		font-family: 'Instrument Serif', serif;
-		font-style: italic;
-		font-size: 13px;
-		color: var(--ink-3);
-	}
-
-	.hero-stats {
-		display: flex;
-		align-items: stretch;
-		gap: 28px;
-		padding: 18px 0 4px;
-		border-top: 1px solid var(--hairline);
-		flex-wrap: wrap;
-	}
-
-	.stat {
-		display: flex;
-		flex-direction: column;
-		gap: 6px;
-		min-width: 80px;
-	}
-
-	.stat-label {
-		font-size: 11px;
-		letter-spacing: 0.12em;
-		text-transform: uppercase;
-		color: var(--ink-4);
-		font-weight: 500;
-	}
-
-	.stat-value {
-		font-family: 'Instrument Serif', serif;
-		font-size: 28px;
-		line-height: 1;
-		letter-spacing: -0.01em;
-		font-variant-numeric: tabular-nums;
-		color: var(--ink);
-		display: inline-flex;
-		align-items: baseline;
-		gap: 1px;
-	}
-
-	.stat-value.feels { color: var(--accent-feels); }
-	.stat-value.humid { color: var(--accent-humid); }
-
-	.stat-unit {
-		font-size: 16px;
-		color: var(--ink-3);
-		margin-left: 2px;
-		font-style: italic;
-	}
-
-	.stat-delta {
-		font-family: 'Geist Mono', ui-monospace, monospace;
-		font-size: 18px;
-		font-variant-numeric: tabular-nums;
-		color: var(--ink-2);
-	}
-
-	.trend-arrow {
-		margin-right: 4px;
-		flex-shrink: 0;
-		align-self: center;
-	}
-
-	.stat-sep {
-		width: 1px;
-		background: var(--hairline);
-		align-self: stretch;
 	}
 </style>

@@ -6,6 +6,7 @@
 	import Outside from './Outside.svelte';
 	import Year from './Year.svelte';
 	import Tweaks from './Tweaks.svelte';
+	import { tweaks } from '$lib/tweaks.svelte.js';
 	import { onMount } from 'svelte';
 
 	const cached = typeof localStorage !== 'undefined'
@@ -15,13 +16,19 @@
 	let data = $state(cached ?? { temp: null, humid: null });
 	let lastFetchTime = $state(cached?.fetchTime ?? null);
 	let outside = $state(null);
-	let ifFetch = false;
 
 	onMount(async () => {
 		// Show the latest DB row if no cache, then replace with live reading
 		if (!cached) fetchLatestFromDB();
 		fetchLive();
-		fetchOutside();
+	});
+
+	// Re-fetch outside weather whenever the configured coords change.
+	$effect(() => {
+		const lat = tweaks.locationLat;
+		const lon = tweaks.locationLon;
+		if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
+		fetchOutside(lat, lon);
 	});
 
 	async function fetchLatestFromDB() {
@@ -39,7 +46,6 @@
 	}
 
 	async function fetchLive() {
-		ifFetch = true;
 		try {
 			const res = await fetch('http://epsilon.local:3000/get');
 			const json = await res.json();
@@ -50,13 +56,12 @@
 		} catch (err) {
 			console.error('Error fetching live data:', err);
 		}
-		ifFetch = false;
 	}
 
-	async function fetchOutside() {
+	async function fetchOutside(lat, lon) {
 		try {
 			const res = await fetch(
-				'https://api.open-meteo.com/v1/forecast?latitude=59.425&longitude=17.865' +
+				`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
 				'&current=temperature_2m,relative_humidity_2m,weather_code,apparent_temperature,windspeed_10m' +
 				'&hourly=temperature_2m&forecast_days=2&timezone=Europe%2FStockholm'
 			);

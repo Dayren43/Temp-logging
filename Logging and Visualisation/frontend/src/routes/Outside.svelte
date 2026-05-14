@@ -1,4 +1,6 @@
 <script>
+	import { tweaks } from '$lib/tweaks.svelte.js';
+
 	let { inside = null, outside = null } = $props();
 
 	const SVG_W = 220;
@@ -22,23 +24,21 @@
 		outside?.humid ?? null
 	));
 
-	const tDelta = $derived(
-		inside?.temp != null && outside?.temp != null ? inside.temp - outside.temp : null
-	);
-	const hDelta = $derived(
-		inside?.humid != null && outside?.humid != null ? inside.humid - outside.humid : null
-	);
+	const sparkRange = $derived(() => {
+		const pts = outside?.hourly;
+		if (!pts || pts.length < 2) return null;
+		const temps = pts.map(p => p.temp);
+		return { lo: Math.min(...temps), hi: Math.max(...temps) };
+	});
 
 	const sparkPath = $derived(() => {
 		const pts = outside?.hourly;
-		if (!pts || pts.length < 2) return { line: '', area: '' };
-		const temps = pts.map(p => p.temp);
-		const lo = Math.min(...temps);
-		const hi = Math.max(...temps);
-		const span = (hi - lo) || 1;
+		const r = sparkRange();
+		if (!pts || pts.length < 2 || !r) return { line: '', area: '' };
+		const span = (r.hi - r.lo) || 1;
 		const cmds = pts.map((p, i) => {
 			const x = (i / (pts.length - 1)) * SVG_W;
-			const y = SVG_H - ((p.temp - lo) / span) * (SVG_H - 6) - 3;
+			const y = SVG_H - ((p.temp - r.lo) / span) * (SVG_H - 6) - 3;
 			return `${i === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`;
 		}).join(' ');
 		return { line: cmds, area: `${cmds} L ${SVG_W} ${SVG_H} L 0 ${SVG_H} Z` };
@@ -65,7 +65,7 @@
 			<circle cx="29" cy="11" r="4.5" fill="rgba(245,184,164,0.55)" />
 		</svg>
 		<div class="outside-loc-meta">
-			<div class="outside-loc-name">Järfälla</div>
+			<div class="outside-loc-name">{tweaks.locationName}</div>
 			<div class="outside-loc-cond">
 				{outside.condition}{updatedMin != null ? ` · updated ${updatedMin} min ago` : ''}
 			</div>
@@ -95,7 +95,12 @@
 
 	{#if outside.hourly && outside.hourly.length >= 2}
 	<div class="outside-spark">
-		<div class="outside-spark-label">Next 12 hours</div>
+		<div class="outside-spark-label">
+			Next 12 hours
+			{#if sparkRange()}
+				<span class="outside-spark-range">{Math.round(sparkRange().lo)}° – {Math.round(sparkRange().hi)}°</span>
+			{/if}
+		</div>
 		<svg viewBox="0 0 {SVG_W} {SVG_H}" preserveAspectRatio="none" class="outside-spark-svg">
 			<path d={sparkPath().area} fill="var(--accent-feels)" fill-opacity="0.18" />
 			<path d={sparkPath().line} fill="none" stroke="var(--accent-feels)"
@@ -120,15 +125,19 @@
 			<span>{rec.verb}</span>
 		</div>
 		<div class="outside-rec-why">{rec.why}</div>
-		{#if tDelta != null}
+		{#if inside?.temp != null && outside?.temp != null}
 		<div class="outside-rec-deltas">
-			<span class="delta-pair"><em>Inside</em><b class="delta-temp">{inside.temp.toFixed(1)}°</b></span>
-			<span class="delta-arrow">{Math.abs(tDelta) < 0.3 ? '≈' : tDelta > 0 ? '→ cooler' : '→ warmer'}</span>
-			<span class="delta-pair"><em>Outside</em><b class="delta-outside">{outside.temp.toFixed(1)}°</b></span>
-			{#if hDelta != null}
+			<span class="delta-pair">
+				<em>Inside</em>
+				<b class="delta-temp">{inside.temp.toFixed(1)}°</b>
+				{#if inside.humid != null}<span class="delta-humid">/ {Math.round(inside.humid)}%</span>{/if}
+			</span>
 			<span class="delta-sep">·</span>
-			<span class="delta-humid">Humidity <b>{hDelta > 0 ? '+' : ''}{hDelta.toFixed(0)}%</b></span>
-			{/if}
+			<span class="delta-pair">
+				<em>Outside</em>
+				<b class="delta-outside">{outside.temp.toFixed(1)}°</b>
+				{#if outside.humid != null}<span class="delta-humid">/ {Math.round(outside.humid)}%</span>{/if}
+			</span>
 		</div>
 		{/if}
 	</div>
@@ -279,6 +288,16 @@
 		letter-spacing: 0.1em;
 		text-transform: uppercase;
 		color: var(--ink-4);
+		display: flex;
+		justify-content: space-between;
+		gap: 8px;
+	}
+
+	.outside-spark-range {
+		color: var(--accent-feels);
+		font-variant-numeric: tabular-nums;
+		text-transform: none;
+		letter-spacing: 0;
 	}
 
 	.outside-spark-svg {
@@ -360,7 +379,6 @@
 	.delta-pair em { font-style: normal; color: var(--ink-4); }
 	.delta-temp    { color: var(--accent-temp); }
 	.delta-outside { color: var(--accent-feels); }
-	.delta-arrow   { color: var(--ink-3); font-size: 10px; }
 	.delta-sep     { color: var(--ink-4); }
-	.delta-humid b { color: var(--accent-humid); }
+	.delta-humid   { color: var(--accent-humid); }
 </style>

@@ -3,8 +3,21 @@
 
 	let open = $state(false);
 
-	function seg(key, options) {
-		return { key, options, get val() { return tweaks[key]; } };
+	let coordsText = $state(`${tweaks.locationLat}, ${tweaks.locationLon}`);
+	let coordsErr = $state('');
+
+	function commitCoords(s) {
+		const m = /^\s*(-?\d+(?:\.\d+)?)\s*[,\s]\s*(-?\d+(?:\.\d+)?)\s*$/.exec(s);
+		if (!m) { coordsErr = 'expected: lat, lon'; return; }
+		const lat = parseFloat(m[1]), lon = parseFloat(m[2]);
+		if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+			coordsErr = 'out of range';
+			return;
+		}
+		setTweak('locationLat', lat);
+		setTweak('locationLon', lon);
+		coordsText = `${lat}, ${lon}`;
+		coordsErr = '';
 	}
 </script>
 
@@ -53,6 +66,31 @@
 					>{d}</button>
 					{/each}
 				</div>
+			</div>
+
+			<div class="tweaks-sect">Location</div>
+
+			<div class="tweaks-row tweaks-row-stack">
+				<span class="tweaks-label">Name</span>
+				<input
+					class="tweaks-input"
+					type="text"
+					value={tweaks.locationName}
+					onchange={(e) => setTweak('locationName', e.currentTarget.value)}
+				/>
+			</div>
+
+			<div class="tweaks-row tweaks-row-stack">
+				<span class="tweaks-label">Coords</span>
+				<input
+					class="tweaks-input"
+					class:is-err={coordsErr}
+					type="text"
+					placeholder="lat, lon"
+					bind:value={coordsText}
+					onchange={() => commitCoords(coordsText)}
+				/>
+				{#if coordsErr}<span class="tweaks-err">{coordsErr}</span>{/if}
 			</div>
 		</div>
 	</div>
@@ -196,6 +234,41 @@
 		background: var(--surface);
 		color: var(--ink);
 		box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+	}
+
+	.tweaks-row-stack {
+		flex-direction: column;
+		align-items: stretch;
+		gap: 4px;
+	}
+
+	.tweaks-input {
+		appearance: none;
+		background: rgba(0,0,0,0.28);
+		border: 1px solid var(--hairline);
+		border-radius: 7px;
+		color: var(--ink);
+		font-family: 'Geist Mono', ui-monospace, monospace;
+		font-size: 11.5px;
+		padding: 5px 8px;
+		width: 100%;
+		box-sizing: border-box;
+		transition: border-color 0.12s;
+	}
+
+	.tweaks-input:focus {
+		outline: none;
+		border-color: var(--hairline-strong);
+	}
+
+	.tweaks-input.is-err {
+		border-color: var(--accent-temp);
+	}
+
+	.tweaks-err {
+		color: var(--accent-temp);
+		font-family: 'Geist Mono', ui-monospace, monospace;
+		font-size: 10px;
 	}
 
 	.tweaks-fab {

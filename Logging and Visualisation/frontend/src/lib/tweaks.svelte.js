@@ -1,6 +1,10 @@
+const env = import.meta.env;
 const DEFAULTS = {
 	chartStyle: 'area',  // 'line' | 'area'
 	density: 'regular',  // 'compact' | 'regular' | 'comfy'
+	locationName: env.VITE_LOCATION_NAME || 'Stockholm',
+	locationLat: parseFloat(env.VITE_LOCATION_LAT) || 59.3293,
+	locationLon: parseFloat(env.VITE_LOCATION_LON) || 18.0686,
 };
 
 function load() {
