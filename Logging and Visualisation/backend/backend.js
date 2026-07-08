@@ -5,6 +5,7 @@ import pkg from "pg";
 const { Pool } = pkg;
 const app = express();
 app.use(cors());
+app.use(express.json());
 
 // Simple request logging middleware
 app.use((req, res, next) => {
@@ -211,4 +212,119 @@ app.get("/average", async (req, res) => {
   }
 });
   
+/**
+ * Home Assistant AC control
+ *
+ * The frontend never talks to Home Assistant directly — it goes through here so
+ * the long-lived token stays server-side (same reasoning as the DB creds) and
+ * we avoid CORS. Configure via .env:
+ *   HA_URL       e.g. http://homeassistant.local:8123
+ *   HA_TOKEN     Long-Lived Access Token (HA → profile → Security)
+ *   AC_ENTITY_ID e.g. climate.living_room
+ */
+const HA_URL = (process.env.HA_URL || "").replace(/\/$/, "");
+const HA_TOKEN = process.env.HA_TOKEN || "";
+const AC_ENTITY_ID = process.env.AC_ENTITY_ID || "";
+const HA_CONFIGURED = Boolean(HA_URL && HA_TOKEN && AC_ENTITY_ID);
+
+async function haFetch(path, options = {}) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 5000);
+  try {
+    return await fetch(`${HA_URL}${path}`, {
+      ...options,
+      signal: controller.signal,
+      headers: {
+        Authorization: `Bearer ${HA_TOKEN}`,
+        "Content-Type": "application/json",
+        ...(options.headers || {}),
+      },
+    });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+// Call a HA service, e.g. callService("climate", "set_temperature", { temperature: 21 })
+function callService(domain, service, data = {}) {
+  return haFetch(`/api/services/${domain}/${service}`, {
+    method: "POST",
+    body: JSON.stringify({ entity_id: AC_ENTITY_ID, ...data }),
+  });
+}
+
+// Reduce HA's verbose state object down to what the card needs.
+function shapeState(s) {
+  const a = s.attributes || {};
+  return {
+    entity_id: s.entity_id,
+    mode: s.state,                          // "off" | "cool" | "heat" | "auto" | ...
+    on: s.state !== "off" && s.state !== "unavailable",
+    available: s.state !== "unavailable",
+    hvac_action: a.hvac_action ?? null,     // "cooling" | "idle" | "off" | ...
+    current_temp: a.current_temperature ?? null,
+    target_temp: a.temperature ?? null,
+    min_temp: a.min_temp ?? 16,
+    max_temp: a.max_temp ?? 30,
+    step: a.target_temp_step ?? 0.5,
+    modes: a.hvac_modes ?? [],
+    name: a.friendly_name ?? s.entity_id,
+  };
+}
+
+/**
+ * GET /ac — current AC state (shaped for the card)
+ */
+app.get("/ac", async (req, res) => {
+  if (!HA_CONFIGURED) {
+    return res.status(503).json({ error: "not_configured" });
+  }
+  try {
+    const r = await haFetch(`/api/states/${AC_ENTITY_ID}`);
+    if (!r.ok) {
+      console.error("HA state error:", r.status);
+      return res.status(502).json({ error: "ha_error", status: r.status });
+    }
+    res.json(shapeState(await r.json()));
+  } catch (err) {
+    console.error("HA /ac error:", err.message);
+    res.status(502).json({ error: "unreachable" });
+  }
+});
+
+/**
+ * POST /ac/power  { on: boolean }
+ */
+app.post("/ac/power", async (req, res) => {
+  if (!HA_CONFIGURED) return res.status(503).json({ error: "not_configured" });
+  const on = Boolean(req.body?.on);
+  try {
+    const r = await callService("climate", on ? "turn_on" : "turn_off");
+    if (!r.ok) return res.status(502).json({ error: "ha_error", status: r.status });
+    res.json({ ok: true, on });
+  } catch (err) {
+    console.error("HA /ac/power error:", err.message);
+    res.status(502).json({ error: "unreachable" });
+  }
+});
+
+/**
+ * POST /ac/temp  { temperature: number }
+ */
+app.post("/ac/temp", async (req, res) => {
+  if (!HA_CONFIGURED) return res.status(503).json({ error: "not_configured" });
+  const temperature = Number(req.body?.temperature);
+  if (!Number.isFinite(temperature)) {
+    return res.status(400).json({ error: "invalid_temperature" });
+  }
+  try {
+    const r = await callService("climate", "set_temperature", { temperature });
+    if (!r.ok) return res.status(502).json({ error: "ha_error", status: r.status });
+    res.json({ ok: true, temperature });
+  } catch (err) {
+    console.error("HA /ac/temp error:", err.message);
+    res.status(502).json({ error: "unreachable" });
+  }
+});
+
 app.listen(3000, () => console.log(`[${new Date().toISOString()}] Backend running on port 3000`));

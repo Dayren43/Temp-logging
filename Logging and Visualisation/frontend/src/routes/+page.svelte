@@ -2,6 +2,7 @@
 	import LineChart from './LineChart.svelte';
 	import TopBar from './TopBar.svelte';
 	import Hero from './Hero.svelte';
+	import AcControl from './AcControl.svelte';
 	import History from './History.svelte';
 	import Outside from './Outside.svelte';
 	import Year from './Year.svelte';
@@ -17,10 +18,29 @@
 	let lastFetchTime = $state(cached?.fetchTime ?? null);
 	let outside = $state(null);
 
-	onMount(async () => {
+	onMount(() => {
 		// Show the latest DB row if no cache, then replace with live reading
 		if (!cached) fetchLatestFromDB();
 		fetchLive();
+
+		// Keep the live reading fresh while the page stays open.
+		const interval = setInterval(() => {
+			fetchLive();
+			const { locationLat: lat, locationLon: lon } = tweaks;
+			if (Number.isFinite(lat) && Number.isFinite(lon)) fetchOutside(lat, lon);
+		}, 5 * 60_000);
+
+		// Re-fetch immediately when the tab becomes visible again, so a
+		// backgrounded/throttled tab shows current data as soon as it's focused.
+		const onVisible = () => {
+			if (document.visibilityState === 'visible') fetchLive();
+		};
+		document.addEventListener('visibilitychange', onVisible);
+
+		return () => {
+			clearInterval(interval);
+			document.removeEventListener('visibilitychange', onVisible);
+		};
 	});
 
 	// Re-fetch outside weather whenever the configured coords change.
@@ -108,6 +128,7 @@
 
 <TopBar lastTimestamp={lastFetchTime} />
 <Hero temp={data.temp} humid={data.humid} {outside} />
+<AcControl />
 <Outside inside={data} {outside} />
 <LineChart />
 <History />

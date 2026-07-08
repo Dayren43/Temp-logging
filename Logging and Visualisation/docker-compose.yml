@@ -34,7 +34,10 @@ services:
     depends_on:
       - db
     dns:
-      - 192.168.1.1 
+      - 192.168.1.1
+    # Lets the backend reach Home Assistant (network_mode: host) on this machine.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   frontend:
     build:
