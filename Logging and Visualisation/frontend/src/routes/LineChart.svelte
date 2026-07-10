@@ -173,8 +173,10 @@
   }
 
   // ── Data fetching ───────────────────────────────────────────────────────────
-  async function fetchData() {
-    isLoading = true;
+  async function fetchData({ silent = false } = {}) {
+    // Skip the loading state on background refreshes so the chart doesn't
+    // flash a spinner while it already has data on screen.
+    if (!silent) isLoading = true;
     error = null;
     try {
       const q = new URLSearchParams({ range: timeRange });
@@ -224,11 +226,24 @@
   // ── Lifecycle ───────────────────────────────────────────────────────────────
   onMount(() => {
     fetchData();
+
+    // Keep the chart current while the page stays open, and refresh
+    // immediately when the tab regains focus (the main thing to see on return).
+    const interval = setInterval(() => fetchData({ silent: true }), 5 * 60_000);
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') fetchData({ silent: true });
+    };
+    document.addEventListener('visibilitychange', onVisible);
+
     const ro = new ResizeObserver(entries => {
       W = Math.max(320, entries[0].contentRect.width);
     });
     ro.observe(wrapEl);
-    return () => ro.disconnect();
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisible);
+      ro.disconnect();
+    };
   });
 </script>
 
