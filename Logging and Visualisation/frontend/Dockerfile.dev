@@ -2,16 +2,22 @@
 FROM node:20-alpine AS build
 WORKDIR /app
 COPY package*.json ./
-RUN npm install
+RUN npm ci
 COPY . .
 RUN npm run build
+# Drop devDependencies so only runtime deps are carried into the final image
+RUN npm prune --omit=dev
 
 # Stage 2: Run Node server
-FROM node:20-alpine
+FROM node:20-alpine AS runtime
 WORKDIR /app
+ENV NODE_ENV=production
 COPY --from=build /app/package*.json ./
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/build ./build
+USER node
 EXPOSE 3000
 ENV HOST=0.0.0.0
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s \
+    CMD wget -q --spider http://127.0.0.1:3000/ || exit 1
 CMD ["node", "build"]
