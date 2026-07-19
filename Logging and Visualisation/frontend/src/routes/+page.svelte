@@ -53,7 +53,7 @@
 
 	async function fetchLatestFromDB() {
 		try {
-			const res = await fetch('http://epsilon.local:3000/data?limit=1');
+			const res = await fetch('http://epsilon.local:3000/data?limit=1', { cache: 'no-store' });
 			const json = await res.json();
 			const row = json.data?.[0];
 			if (row && data.temp == null) {
@@ -67,7 +67,7 @@
 
 	async function fetchLive() {
 		try {
-			const res = await fetch('http://epsilon.local:3000/get');
+			const res = await fetch('http://epsilon.local:3000/get', { cache: 'no-store' });
 			const json = await res.json();
 			const fetchTime = Date.now();
 			data = { temp: json.temp ?? json.Temp, humid: json.humid ?? json.Humid };

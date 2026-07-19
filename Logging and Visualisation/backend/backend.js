@@ -166,6 +166,8 @@ app.get("/get", async (req, res) => {
     clearTimeout(timeoutId);
 
     const data = await response.json();
+    // Live reading — never let a browser or proxy serve a stale cached value.
+    res.set("Cache-Control", "no-store");
     res.json(data);
   } catch (error) {
     console.error("Error forwarding request to sensor.local:", error.message);
