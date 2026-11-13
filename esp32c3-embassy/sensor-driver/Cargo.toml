@@ -1,0 +1,8 @@
+[package]
+name = "sensor-driver"
+version = "0.1.0"
+edition = "2021"
+description = "Hardware-agnostic DHT22 driver over embedded-hal 1.0 traits"
+
+[dependencies]
+embedded-hal = "1.0"
