@@ -103,6 +103,15 @@
         "documentation": {}
     },
     {
+        "label": "logging",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "logging",
+        "description": "logging",
+        "detail": "logging",
+        "documentation": {}
+    },
+    {
         "label": "ver_re",
         "kind": 5,
         "importPath": "ESP32c3 sensor webserver..pio.libdeps.seeed_xiao_esp32c3.Unity.auto.extract_version",
@@ -141,64 +150,73 @@
     {
         "label": "poll_and_insert",
         "kind": 2,
-        "importPath": "Logging and Visualisation.poll_sensor",
-        "description": "Logging and Visualisation.poll_sensor",
-        "peekOfCode": "def poll_and_insert():\n    try:\n        resp = requests.get(SENSOR_URL, timeout=10)\n        data = resp.json()\n        temp = data.get(\"Temp\")\n        humid = data.get(\"Humid\")\n        if temp is not None and humid is not None:\n            conn = psycopg2.connect(\n                host=DB_HOST, dbname=DB_NAME, user=DB_USER, password=DB_PASS\n            )",
-        "detail": "Logging and Visualisation.poll_sensor",
+        "importPath": "Logging and Visualisation.sensor-poller.poll_sensor",
+        "description": "Logging and Visualisation.sensor-poller.poll_sensor",
+        "peekOfCode": "def poll_and_insert():\n    try:\n        resp = requests.get(SENSOR_URL, timeout=10)\n        data = resp.json()\n        temp = data.get(\"Temp\")\n        humid = data.get(\"Humid\")\n        if temp is not None and humid is not None:\n            conn = psycopg2.connect(\n                host=DB_HOST,\n                dbname=DB_NAME,",
+        "detail": "Logging and Visualisation.sensor-poller.poll_sensor",
+        "documentation": {}
+    },
+    {
+        "label": "logger",
+        "kind": 5,
+        "importPath": "Logging and Visualisation.sensor-poller.poll_sensor",
+        "description": "Logging and Visualisation.sensor-poller.poll_sensor",
+        "peekOfCode": "logger = logging.getLogger()\n# Reduce non-error messages to DEBUG\nlogger.setLevel(logging.DEBUG)\n# ----------------------\n# Environment variables\n# ----------------------\nDB_HOST = os.getenv(\"DB_HOST\")\nDB_NAME = os.getenv(\"POSTGRES_DB\")\nDB_USER = os.getenv(\"POSTGRES_USER\")\nDB_PASS = os.getenv(\"POSTGRES_PASSWORD\")",
+        "detail": "Logging and Visualisation.sensor-poller.poll_sensor",
         "documentation": {}
     },
     {
         "label": "DB_HOST",
         "kind": 5,
-        "importPath": "Logging and Visualisation.poll_sensor",
-        "description": "Logging and Visualisation.poll_sensor",
-        "peekOfCode": "DB_HOST = os.getenv(\"DB_HOST\")\nDB_NAME = os.getenv(\"DB_NAME\")\nDB_USER = os.getenv(\"DB_USER\")\nDB_PASS = os.getenv(\"DB_PASS\")\nSENSOR_URL = os.getenv(\"SENSOR_URL\", \"http://sensor.local/get\")\nINTERVAL = int(os.getenv(\"INTERVAL\", \"300\"))  # 5 minutes\ndef poll_and_insert():\n    try:\n        resp = requests.get(SENSOR_URL, timeout=10)\n        data = resp.json()",
-        "detail": "Logging and Visualisation.poll_sensor",
+        "importPath": "Logging and Visualisation.sensor-poller.poll_sensor",
+        "description": "Logging and Visualisation.sensor-poller.poll_sensor",
+        "peekOfCode": "DB_HOST = os.getenv(\"DB_HOST\")\nDB_NAME = os.getenv(\"POSTGRES_DB\")\nDB_USER = os.getenv(\"POSTGRES_USER\")\nDB_PASS = os.getenv(\"POSTGRES_PASSWORD\")\nSENSOR_URL = os.getenv(\"SENSOR_URL\", \"http://sensor.local/get\")\nINTERVAL = int(os.getenv(\"INTERVAL\", \"300\"))  # 5 minutes\n# ----------------------\n# Polling function\n# ----------------------\ndef poll_and_insert():",
+        "detail": "Logging and Visualisation.sensor-poller.poll_sensor",
         "documentation": {}
     },
     {
         "label": "DB_NAME",
         "kind": 5,
-        "importPath": "Logging and Visualisation.poll_sensor",
-        "description": "Logging and Visualisation.poll_sensor",
-        "peekOfCode": "DB_NAME = os.getenv(\"DB_NAME\")\nDB_USER = os.getenv(\"DB_USER\")\nDB_PASS = os.getenv(\"DB_PASS\")\nSENSOR_URL = os.getenv(\"SENSOR_URL\", \"http://sensor.local/get\")\nINTERVAL = int(os.getenv(\"INTERVAL\", \"300\"))  # 5 minutes\ndef poll_and_insert():\n    try:\n        resp = requests.get(SENSOR_URL, timeout=10)\n        data = resp.json()\n        temp = data.get(\"Temp\")",
-        "detail": "Logging and Visualisation.poll_sensor",
+        "importPath": "Logging and Visualisation.sensor-poller.poll_sensor",
+        "description": "Logging and Visualisation.sensor-poller.poll_sensor",
+        "peekOfCode": "DB_NAME = os.getenv(\"POSTGRES_DB\")\nDB_USER = os.getenv(\"POSTGRES_USER\")\nDB_PASS = os.getenv(\"POSTGRES_PASSWORD\")\nSENSOR_URL = os.getenv(\"SENSOR_URL\", \"http://sensor.local/get\")\nINTERVAL = int(os.getenv(\"INTERVAL\", \"300\"))  # 5 minutes\n# ----------------------\n# Polling function\n# ----------------------\ndef poll_and_insert():\n    try:",
+        "detail": "Logging and Visualisation.sensor-poller.poll_sensor",
         "documentation": {}
     },
     {
         "label": "DB_USER",
         "kind": 5,
-        "importPath": "Logging and Visualisation.poll_sensor",
-        "description": "Logging and Visualisation.poll_sensor",
-        "peekOfCode": "DB_USER = os.getenv(\"DB_USER\")\nDB_PASS = os.getenv(\"DB_PASS\")\nSENSOR_URL = os.getenv(\"SENSOR_URL\", \"http://sensor.local/get\")\nINTERVAL = int(os.getenv(\"INTERVAL\", \"300\"))  # 5 minutes\ndef poll_and_insert():\n    try:\n        resp = requests.get(SENSOR_URL, timeout=10)\n        data = resp.json()\n        temp = data.get(\"Temp\")\n        humid = data.get(\"Humid\")",
-        "detail": "Logging and Visualisation.poll_sensor",
+        "importPath": "Logging and Visualisation.sensor-poller.poll_sensor",
+        "description": "Logging and Visualisation.sensor-poller.poll_sensor",
+        "peekOfCode": "DB_USER = os.getenv(\"POSTGRES_USER\")\nDB_PASS = os.getenv(\"POSTGRES_PASSWORD\")\nSENSOR_URL = os.getenv(\"SENSOR_URL\", \"http://sensor.local/get\")\nINTERVAL = int(os.getenv(\"INTERVAL\", \"300\"))  # 5 minutes\n# ----------------------\n# Polling function\n# ----------------------\ndef poll_and_insert():\n    try:\n        resp = requests.get(SENSOR_URL, timeout=10)",
+        "detail": "Logging and Visualisation.sensor-poller.poll_sensor",
         "documentation": {}
     },
     {
         "label": "DB_PASS",
         "kind": 5,
-        "importPath": "Logging and Visualisation.poll_sensor",
-        "description": "Logging and Visualisation.poll_sensor",
-        "peekOfCode": "DB_PASS = os.getenv(\"DB_PASS\")\nSENSOR_URL = os.getenv(\"SENSOR_URL\", \"http://sensor.local/get\")\nINTERVAL = int(os.getenv(\"INTERVAL\", \"300\"))  # 5 minutes\ndef poll_and_insert():\n    try:\n        resp = requests.get(SENSOR_URL, timeout=10)\n        data = resp.json()\n        temp = data.get(\"Temp\")\n        humid = data.get(\"Humid\")\n        if temp is not None and humid is not None:",
-        "detail": "Logging and Visualisation.poll_sensor",
+        "importPath": "Logging and Visualisation.sensor-poller.poll_sensor",
+        "description": "Logging and Visualisation.sensor-poller.poll_sensor",
+        "peekOfCode": "DB_PASS = os.getenv(\"POSTGRES_PASSWORD\")\nSENSOR_URL = os.getenv(\"SENSOR_URL\", \"http://sensor.local/get\")\nINTERVAL = int(os.getenv(\"INTERVAL\", \"300\"))  # 5 minutes\n# ----------------------\n# Polling function\n# ----------------------\ndef poll_and_insert():\n    try:\n        resp = requests.get(SENSOR_URL, timeout=10)\n        data = resp.json()",
+        "detail": "Logging and Visualisation.sensor-poller.poll_sensor",
         "documentation": {}
     },
     {
         "label": "SENSOR_URL",
         "kind": 5,
-        "importPath": "Logging and Visualisation.poll_sensor",
-        "description": "Logging and Visualisation.poll_sensor",
-        "peekOfCode": "SENSOR_URL = os.getenv(\"SENSOR_URL\", \"http://sensor.local/get\")\nINTERVAL = int(os.getenv(\"INTERVAL\", \"300\"))  # 5 minutes\ndef poll_and_insert():\n    try:\n        resp = requests.get(SENSOR_URL, timeout=10)\n        data = resp.json()\n        temp = data.get(\"Temp\")\n        humid = data.get(\"Humid\")\n        if temp is not None and humid is not None:\n            conn = psycopg2.connect(",
-        "detail": "Logging and Visualisation.poll_sensor",
+        "importPath": "Logging and Visualisation.sensor-poller.poll_sensor",
+        "description": "Logging and Visualisation.sensor-poller.poll_sensor",
+        "peekOfCode": "SENSOR_URL = os.getenv(\"SENSOR_URL\", \"http://sensor.local/get\")\nINTERVAL = int(os.getenv(\"INTERVAL\", \"300\"))  # 5 minutes\n# ----------------------\n# Polling function\n# ----------------------\ndef poll_and_insert():\n    try:\n        resp = requests.get(SENSOR_URL, timeout=10)\n        data = resp.json()\n        temp = data.get(\"Temp\")",
+        "detail": "Logging and Visualisation.sensor-poller.poll_sensor",
         "documentation": {}
     },
     {
         "label": "INTERVAL",
         "kind": 5,
-        "importPath": "Logging and Visualisation.poll_sensor",
-        "description": "Logging and Visualisation.poll_sensor",
-        "peekOfCode": "INTERVAL = int(os.getenv(\"INTERVAL\", \"300\"))  # 5 minutes\ndef poll_and_insert():\n    try:\n        resp = requests.get(SENSOR_URL, timeout=10)\n        data = resp.json()\n        temp = data.get(\"Temp\")\n        humid = data.get(\"Humid\")\n        if temp is not None and humid is not None:\n            conn = psycopg2.connect(\n                host=DB_HOST, dbname=DB_NAME, user=DB_USER, password=DB_PASS",
-        "detail": "Logging and Visualisation.poll_sensor",
+        "importPath": "Logging and Visualisation.sensor-poller.poll_sensor",
+        "description": "Logging and Visualisation.sensor-poller.poll_sensor",
+        "peekOfCode": "INTERVAL = int(os.getenv(\"INTERVAL\", \"300\"))  # 5 minutes\n# ----------------------\n# Polling function\n# ----------------------\ndef poll_and_insert():\n    try:\n        resp = requests.get(SENSOR_URL, timeout=10)\n        data = resp.json()\n        temp = data.get(\"Temp\")\n        humid = data.get(\"Humid\")",
+        "detail": "Logging and Visualisation.sensor-poller.poll_sensor",
         "documentation": {}
     }
 ]
