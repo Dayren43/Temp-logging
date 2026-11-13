@@ -58,3 +58,6 @@ dkms.conf
 .env
 node_modules/
 db-data/
+
+# VS Code auto-generated Python import completion cache
+.vscode/PythonImportHelper-v2-Completion.json
